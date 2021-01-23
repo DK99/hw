@@ -1,3 +1,13 @@
+```
+sudo docker build -t hw_build .
+sudo docker run -it \
+    -e DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -v `pwd`:/src \
+    hw_build:latest
+```
+
+
 Hedgewars - a turn-based strategy game
 ======================================
 [![Build Status](https://travis-ci.org/hedgewars/hw.svg)](https://travis-ci.org/hedgewars/hw)
