@@ -3,7 +3,7 @@ use serde_derive::{Deserialize, Serialize};
 pub type ClientId = usize;
 pub type RoomId = usize;
 
-pub const MAX_HEDGEHOGS_PER_TEAM: u8 = 8;
+pub const MAX_HEDGEHOGS_PER_TEAM: u8 = 4;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum ServerVar {

@@ -184,7 +184,7 @@ const
     RGB_LUMINANCE_BLUE   = 0.072169;
 
     // hedgehog info
-    cMaxTeams        = 8; // maximum number of teams
+    cMaxTeams        = 16; // maximum number of teams
     cMaxHHIndex      = 7; // maximum hedgehog index (counting starts at 0)
                           // NOTE: If you change cMaxHHIndex, also change cMaxHogHealth!
     cMaxHHs          = cMaxTeams * (cMaxHHIndex+1); // maximum number of hogs

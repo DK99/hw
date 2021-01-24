@@ -11,9 +11,16 @@ RUN apt-get update && \
     libghc-zlib-dev libghc-sha-dev libghc-entropy-dev libghc-regex-tdfa-dev libghc-aeson-dev libghc-yaml-dev libghc-text-dev\
     libghc-base-dev
     
+RUN apt-get install -y mesa-utils
+
 RUN rm -rf /var/lib/apt/lists/*
+
+# nvidia-docker hooks
+LABEL com.nvidia.volumes.needed="nvidia_driver"
+ENV PATH /usr/local/nvidia/bin:${PATH}
+ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
 
 VOLUME "/src"
 WORKDIR /src
 
-CMD cmake -DNOVIDEOREC=1 -DNOPNG=1 . && make install && ./bin/hedgewars
+CMD cmake -DCMAKE_BUILD_TYPE="Debug" -DNOSERVER=0 -DNOVIDEOREC=1 -DNOPNG=1 . && make install && ./bin/hedgewars

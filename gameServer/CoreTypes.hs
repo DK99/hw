@@ -258,8 +258,8 @@ newRoom =
         False
         False
         False
-        4
-        8
+        1
+        16
         ""
         Nothing
         []

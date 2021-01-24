@@ -26,11 +26,11 @@ serverVersion = "3"
 
 -- Maximum hedgehogs per team
 cHogsPerTeam :: Int
-cHogsPerTeam = 8
+cHogsPerTeam = 4
 
 -- Maximum teams count
 cMaxTeams :: Int
-cMaxTeams = 8
+cMaxTeams = 16
 
 -- Maximum total number of hedgehogs
 cMaxHHs :: Int

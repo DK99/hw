@@ -44,7 +44,7 @@ QDir * datadir = new QDir();
 bool custom_config = false;
 bool custom_data = false;
 
-int cMaxTeams = 8;
+int cMaxTeams = 16;
 int cMaxHHs = HEDGEHOGS_PER_TEAM * cMaxTeams;
 int cMinServerVersion = 3;
 unsigned char cInvertTextColorAt = 64;

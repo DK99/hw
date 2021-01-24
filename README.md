@@ -4,6 +4,16 @@ sudo docker run -it \
     -e DISPLAY=$DISPLAY \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -v `pwd`:/src \
+    -v ~/.hedgewars:/root/.hedgewars \
+    hw_build:latest
+
+sudo docker run -it \
+    -e DISPLAY=$DISPLAY \
+    --env="QT_X11_NO_MITSHM=1" \
+    --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
+    -v `pwd`:/src \
+    -v ~/.hedgewars:/root/.hedgewars \
+    --gpus all,capabilities=display \
     hw_build:latest
 ```
 
