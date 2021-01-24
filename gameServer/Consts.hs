@@ -36,6 +36,10 @@ cMaxTeams = 16
 cMaxHHs :: Int
 cMaxHHs = cHogsPerTeam * cMaxTeams
 
+-- Maximum total number of hedgehogs per clan
+cMaxClanHHs :: Int
+cMaxClanHHs = 4
+
 {- "Fake" nick names used for special server messages in chat.
 They are enclosed in brackets; these characters not allowed in real nick names.
 The brackets are required as they are parsed by the frontend.

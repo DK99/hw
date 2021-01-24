@@ -199,7 +199,7 @@ handleCmd_inRoom ["HH_NUM", teamName, numberStr] = do
             [ProtocolError $ loc "You're not the room master!"]
         else if isNothing maybeTeam then
             []
-        else if hhNumber < 1 || hhNumber > cHogsPerTeam || hhNumber > canAddNumber r + hhnum team then
+        else if hhNumber < 1 || hhNumber > cHogsPerTeam || hhNumber > canAddNumberAll r + hhnum team || hhNumber > canAddNumberClan team r + hhnum team then
             [AnswerClients clChan ["HH_NUM", teamName, showB $ hhnum team]]
         else
             [ModifyRoom $ modifyTeam team{hhnum = hhNumber},
@@ -207,8 +207,8 @@ handleCmd_inRoom ["HH_NUM", teamName, numberStr] = do
     where
         hhNumber = readInt_ numberStr
         findTeam = find (\t -> teamName == teamname t) . teams
-        canAddNumber = (-) cMaxHHs . sum . map hhnum . teams
-
+        canAddNumberAll = (-) cMaxHHs . sum . map hhnum . teams
+        canAddNumberClan team = (-) cMaxClanHHs . sum . map hhnum . filter (\t -> teamcolor team == teamcolor t) . teams
 
 
 handleCmd_inRoom ["TEAM_COLOR", teamName, newColor] = do
