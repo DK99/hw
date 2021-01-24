@@ -213,25 +213,31 @@ handleCmd_inRoom ["HH_NUM", teamName, numberStr] = do
 
 handleCmd_inRoom ["TEAM_COLOR", teamName, newColor] = do
     cl <- thisClient
+    allChan <- roomClientsChans
     others <- roomOthersChans
     r <- thisRoom
 
-    let maybeTeam = findTeam r
-    let team = fromJust maybeTeam
-    maybeClientId <- clientByNick $ teamowner team
+    maybeClientId <- clientByNick $ teamowner (team r)
     let teamOwnerId = fromJust maybeClientId
 
     return $
         if not $ isMaster cl then
             [ProtocolError $ loc "You're not the room master!"]
-        else if isNothing maybeTeam || isNothing maybeClientId then
+        else if isNothing (findTeam r) || isNothing maybeClientId then
             []
+        else if canAddNumberClan r < hhnum (team r) then
+            [ModifyRoom $ modifyTeam (team r){teamcolor = newColor},
+            AnswerClients allChan ["TEAM_COLOR", teamName, newColor],
+            AnswerClients allChan ["HH_NUM", teamName, showB $ min (canAddNumberClan r) (hhnum (team r))],
+            ModifyRoom $ modifyTeam (team r){hhnum = min (canAddNumberClan r) (hhnum (team r))}]
         else
-            [ModifyRoom $ modifyTeam team{teamcolor = newColor},
+            [ModifyRoom $ modifyTeam (team r){teamcolor = newColor},
             AnswerClients others ["TEAM_COLOR", teamName, newColor],
             ModifyClient2 teamOwnerId (\c -> c{clientClan = Just newColor})]
     where
+        team = fromJust . findTeam
         findTeam = find (\t -> teamName == teamname t) . teams
+        canAddNumberClan = (-) cMaxClanHHs . sum . map hhnum . filter (\t -> newColor == teamcolor t) . teams
 
 
 handleCmd_inRoom ["TOGGLE_READY"] = do
