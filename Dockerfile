@@ -23,4 +23,6 @@ ENV LD_LIBRARY_PATH /usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_P
 VOLUME "/src"
 WORKDIR /src
 
-CMD cmake -DCMAKE_BUILD_TYPE="Debug" -DNOSERVER=0 -DNOVIDEOREC=1 -DNOPNG=1 . && make install && ./bin/hedgewars
+VOLUME "/.hedgewars"
+
+CMD cp -r /.hedgewars /root/.hedgewars && cmake -DNOSERVER=0 -DNOVIDEOREC=1 -DNOPNG=1 . && make install && ./bin/hedgewars

@@ -2620,6 +2620,7 @@ var
     VisibleTeamsCount: Longword; // number of teams visible in team bar
     ClansArray, SpawnClansArray: TClansArray;
     ClansCount: Longword;
+    VisibleClansCount: Longword; // number of clans visible in team bar
     LocalTeam: LongInt;  // last non-bot, non-extdriven clan first team
     LocalAmmo: LongInt;  // last non-bot, non-extdriven clan's first team's ammo index, updated to next upcoming hog for per-hog-ammo
     CurMinAngle, CurMaxAngle: Longword;

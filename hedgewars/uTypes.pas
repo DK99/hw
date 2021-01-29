@@ -466,6 +466,9 @@ type
             end;
 
     TClan = record
+            DrawHealthY: LongInt;
+            ClanHealthBarHealth: LongInt;
+            ClanNameTex: PTexture;
             Color: Longword;
             Teams: array[0..Pred(cMaxTeams)] of PTeam;
             HealthTex: PTexture;

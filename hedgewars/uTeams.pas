@@ -528,6 +528,7 @@ if c < 0 then
     FillChar(team^.Clan^, sizeof(TClan), 0);
     ClansArray[ClansCount]:= team^.Clan;
     inc(ClansCount);
+    inc(VisibleClansCount);
     with team^.Clan^ do
         begin
         ClanIndex:= Pred(ClansCount);

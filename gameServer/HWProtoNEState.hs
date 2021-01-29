@@ -22,6 +22,8 @@ module HWProtoNEState where
 import Control.Monad.Reader
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Char8 as B
+import qualified Data.List as List
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.Digest.Pure.SHA
 --------------------------------------
 import CoreTypes
@@ -38,10 +40,14 @@ handleCmd_NotEntered ["NICK", newNick] = do
         else
         if illegalName newNick then return [ByeClient $ loc "Illegal nickname! Nicknames must be between 1-40 characters long, must not have a trailing or leading space and must not have any of these characters: $()*+?[]^{|}"]
             else
-            return $
-                ModifyClient (\c -> c{nick = newNick}) :
-                AnswerClients [sendChan cl] ["NICK", newNick] :
-                [CheckRegistered | clientProto cl /= 0]
+            if not ("_0" `List.isSuffixOf` newNickUTF || "_1" `List.isSuffixOf` newNickUTF || "_2" `List.isSuffixOf` newNickUTF || "_3" `List.isSuffixOf` newNickUTF) then return [ByeClient $ loc "Illegal nickname! Nicknames shoud match the follwoing regex: *_[0,1,2,3]"]
+                else
+                return $
+                    ModifyClient (\c -> c{nick = newNick}) :
+                    AnswerClients [sendChan cl] ["NICK", newNick] :
+                    [CheckRegistered | clientProto cl /= 0]
+    where
+        newNickUTF = UTF8.toString newNick
 
 handleCmd_NotEntered ["PROTO", protoNum] = do
     (ci, irnc) <- ask

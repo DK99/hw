@@ -997,151 +997,137 @@ if (WorldEdge <> weNone) and (WorldEdge <> weSea) then
     end;
 end;
 
-
-procedure RenderTeamsHealth;
-var t, i, h, v, smallScreenOffset, TeamHealthBarWidth : LongInt;
+procedure RenderClansHealth;
+var t, x, i, h, v, smallScreenOffset, ClanHealthBarWidth, ClanHedgehogCount : LongInt;
     r: TSDL_Rect;
     highlight: boolean;
     hasVisibleHog: boolean;
     htex: PTexture;
+    ClanHedgehogs: array[0..cMaxHHIndex] of THedgehog;
+
 begin
-if VisibleTeamsCount * 20 > Longword(cScreenHeight) div 7 then  // take up less screen on small displays
+if VisibleClansCount * 20 > Longword(cScreenHeight) div 7 then  // take up less screen on small displays
     begin
     SetScale(1.5);
     smallScreenOffset:= cScreenHeight div 6;
-    if VisibleTeamsCount * 100 > Longword(cScreenHeight) then
+    if VisibleClansCount * 100 > Longword(cScreenHeight) then
         Tint($FF,$FF,$FF,$80);
     end
 else smallScreenOffset:= 0;
-v:= 0; // for updating VisibleTeamsCount
-for t:= 0 to Pred(TeamsCount) do
-    with TeamsArray[t]^ do
-      begin
-      hasVisibleHog:= false;
-      for i:= 0 to cMaxHHIndex do
-          if (Hedgehogs[i].Gear <> nil) then
-              hasVisibleHog:= true;
-      if (TeamHealth > 0) and hasVisibleHog then
+v:= 0; // for updating VisibleClansCount
+for t:= 0 to Pred(ClansCount) do
+    with ClansArray[t]^ do
         begin
-        // count visible teams
-        inc(v);
-        highlight:= bShowFinger and (CurrentTeam = TeamsArray[t]) and ((RealTicks mod 1000) < 500);
+        for i:= 0 to cMaxHHIndex do
+            ClanHedgehogs[i]:= default(THedgehog);
 
-        if highlight then
+        hasVisibleHog:= false;
+        ClanHedgehogCount:= 0;
+        for x:= 0 to Pred(TeamsNumber) do
             begin
-            Tint(Clan^.Color shl 8 or $FF);
-            htex:= GenericHealthTexture
-            end
-        else
-            htex:= Clan^.HealthTex;
-
-        // draw owner
-        if OwnerTex <> nil then
-            DrawTexture(-OwnerTex^.w - NameTagTex^.w - 18, cScreenHeight + DrawHealthY + smallScreenOffset, OwnerTex);
-
-        // draw name
-        DrawTexture(-NameTagTex^.w - 16, cScreenHeight + DrawHealthY + smallScreenOffset, NameTagTex);
-
-        // draw flag
-        DrawTexture(-14, cScreenHeight + DrawHealthY + smallScreenOffset, FlagTex);
-
-        TeamHealthBarWidth:= cTeamHealthWidth * TeamHealthBarHealth div MaxTeamHealth;
-
-        // draw team health bar
-        r.x:= 0;
-        r.y:= 0;
-        r.w:= 2 + TeamHealthBarWidth;
-        r.h:= htex^.h;
-        DrawTextureFromRect(14, cScreenHeight + DrawHealthY + smallScreenOffset, @r, htex);
-
-        // draw health bar's right border
-        inc(r.x, cTeamHealthWidth + 2);
-        r.w:= 3;
-        DrawTextureFromRect(TeamHealthBarWidth + 15, cScreenHeight + DrawHealthY + smallScreenOffset, @r, htex);
-
-        // draw hedgehog health separators in team health bar
-        h:= 0;
-        if not hasGone then
-            for i:= 0 to cMaxHHIndex do
+            with Teams[x]^ do
                 begin
-                inc(h, Hedgehogs[i].HealthBarHealth);
-                if (h < TeamHealthBarHealth) and (Hedgehogs[i].HealthBarHealth > 0) then
-                    if (IsTooDarkToRead(Clan^.Color)) then
-                        DrawTexture(15 + h * TeamHealthBarWidth div TeamHealthBarHealth, cScreenHeight + DrawHealthY + smallScreenOffset + 1, SpritesData[sprSlider].Texture)
-                    else
-                        DrawTexture(15 + h * TeamHealthBarWidth div TeamHealthBarHealth, cScreenHeight + DrawHealthY + smallScreenOffset + 1, SpritesData[sprSliderInverted].Texture);
+
+                for i:= 0 to cMaxHHIndex do
+                    begin
+
+                    if (Hedgehogs[i].Gear <> nil) then
+                        begin
+
+                        hasVisibleHog:= true;
+
+                        ClanHedgehogs[ClanHedgehogCount]:= Hedgehogs[i];
+                        ClanHedgehogCount:= ClanHedgehogCount + 1;
+                        end;
+                    end;
                 end;
+            end;
 
-        // draw Lua value, if set
-        if (hasLuaTeamValue) then
-            DrawTexture(TeamHealthBarWidth + 22, cScreenHeight + DrawHealthY + smallScreenOffset, LuaTeamValueTex)
-        // otherwise, draw AI kill counter for gfAISurvival
-        else if (GameFlags and gfAISurvival) <> 0 then
-            DrawTexture(TeamHealthBarWidth + 22, cScreenHeight + DrawHealthY + smallScreenOffset, AIKillsTex);
-
-        // if highlighted, draw flag and other contents again to keep their colors
-        // this approach should be faster than drawing all borders one by one tinted or not
-        if highlight then
+        if (ClanHealth > 0) and hasVisibleHog then
             begin
-            if VisibleTeamsCount * 100 > Longword(cScreenHeight) then
-                Tint($FF,$FF,$FF,$80)
-            else untint;
+            // count visible clans
+            inc(v);
+
+            ClanHealthBarWidth:= cTeamHealthWidth * ClanHealthBarHealth div ((cMaxHHIndex + 1) * ClanHedgehogs[0].InitialHealth);
+
+            highlight:= bShowFinger and (CurrentTeam^.Clan = ClansArray[t]) and ((RealTicks mod 1000) < 500);
+
+            if highlight then
+                begin
+                Tint(Color shl 8 or $FF);
+                htex:= GenericHealthTexture
+                end
+            else
+                htex:= HealthTex;
 
             // draw name
-            r.x:= 2;
-            r.y:= 2;
-            r.w:= NameTagTex^.w - 4;
-            r.h:= NameTagTex^.h - 4;
-            DrawTextureFromRect(-NameTagTex^.w - 14, cScreenHeight + DrawHealthY + smallScreenOffset + 2, @r, NameTagTex);
+            DrawTexture(12 - ClanNameTex^.w, cScreenHeight + DrawHealthY + smallScreenOffset, ClanNameTex);
 
-            if OwnerTex <> nil then
+            // draw clan health bar
+            r.x:= 0;
+            r.y:= 0;
+            r.w:= 2 + ClanHealthBarWidth;
+            r.h:= htex^.h;
+            DrawTextureFromRect(14, cScreenHeight + DrawHealthY + smallScreenOffset, @r, htex);
+
+            // draw health bar's right border
+            inc(r.x, cTeamHealthWidth + 2);
+            r.w:= 3;
+            DrawTextureFromRect(ClanHealthBarWidth + 15, cScreenHeight + DrawHealthY + smallScreenOffset, @r, htex);
+
+            // draw hedgehog health separators in team health bar
+            h:= 0;
+            //if not DeathLogged then
+            for i:= 0 to cMaxHHIndex do
                 begin
-                r.w:= OwnerTex^.w - 4;
-                r.h:= OwnerTex^.h - 4;
-                DrawTextureFromRect(-OwnerTex^.w - NameTagTex^.w - 16, cScreenHeight + DrawHealthY + smallScreenOffset + 2, @r, OwnerTex)
+                inc(h, ClanHedgehogs[i].HealthBarHealth);
+                if (h < ClanHealthBarHealth) and (ClanHedgehogs[i].HealthBarHealth > 0) then
+                    if (IsTooDarkToRead(Color)) then
+                        DrawTexture(15 + h * ClanHealthBarWidth div ClanHealthBarHealth, cScreenHeight + DrawHealthY + smallScreenOffset + 1, SpritesData[sprSlider].Texture)
+                    else
+                        DrawTexture(15 + h * ClanHealthBarWidth div ClanHealthBarHealth, cScreenHeight + DrawHealthY + smallScreenOffset + 1, SpritesData[sprSliderInverted].Texture);
                 end;
 
-            if (hasLuaTeamValue) then
+            // if highlighted, draw flag and other contents again to keep their colors
+            // this approach should be faster than drawing all borders one by one tinted or not
+            if highlight then
                 begin
-                r.w:= LuaTeamValueTex^.w - 4;
-                r.h:= LuaTeamValueTex^.h - 4;
-                DrawTextureFromRect(TeamHealthBarWidth + 24, cScreenHeight + DrawHealthY + smallScreenOffset + 2, @r, LuaTeamValueTex);
+                if VisibleClansCount * 100 > Longword(cScreenHeight) then
+                    Tint($FF,$FF,$FF,$80)
+                else untint;
+
+                // draw name
+                r.x:= 2;
+                r.y:= 2;
+                if ClanNameTex <> nil then
+                    begin
+                    r.w:= ClanNameTex^.w - 4;
+                    r.h:= ClanNameTex^.h - 4;
+                    end;
+
                 end
-            else if (GameFlags and gfAISurvival) <> 0 then
+            // draw an arrow next to active team
+            else if (CurrentTeam^.Clan = ClansArray[t]) and (TurnTimeLeft > 0) then
                 begin
-                r.w:= AIKillsTex^.w - 4;
-                r.h:= AIKillsTex^.h - 4;
-                DrawTextureFromRect(TeamHealthBarWidth + 24, cScreenHeight + DrawHealthY + smallScreenOffset + 2, @r, AIKillsTex);
-                end;
-
-            // draw flag
-            r.w:= 22;
-            r.h:= 15;
-            DrawTextureFromRect(-12, cScreenHeight + DrawHealthY + smallScreenOffset + 2, @r, FlagTex);
-            end
-        // draw an arrow next to active team
-        else if (CurrentTeam = TeamsArray[t]) and (TurnTimeLeft > 0) then
-            begin
-            h:= -NameTagTex^.w - 24;
-            if OwnerTex <> nil then
-                h:= h - OwnerTex^.w - 4;
-            if (IsTooDarkToRead(TeamsArray[t]^.Clan^.Color)) then
-                DrawSpriteRotatedF(sprFingerBackInv, h, cScreenHeight + DrawHealthY + smallScreenOffset + 2 + SpritesData[sprFingerBackInv].Width div 4, 0, 1, -90)
-            else
-                DrawSpriteRotatedF(sprFingerBack, h, cScreenHeight + DrawHealthY + smallScreenOffset + 2 + SpritesData[sprFingerBack].Width div 4, 0, 1, -90);
-            Tint(TeamsArray[t]^.Clan^.Color shl 8 or $FF);
-            DrawSpriteRotatedF(sprFinger, h, cScreenHeight + DrawHealthY + smallScreenOffset + 2 + SpritesData[sprFinger].Width div 4, 0, 1, -90);
-            untint;
+                if ClanNameTex <> nil then
+                    h:= -ClanNameTex^.w;
+                if (IsTooDarkToRead(Teams[0]^.Clan^.Color)) then
+                    DrawSpriteRotatedF(sprFingerBackInv, h, cScreenHeight + DrawHealthY + smallScreenOffset + 2 + SpritesData[sprFingerBackInv].Width div 4, 0, 1, -90)
+                else
+                    DrawSpriteRotatedF(sprFingerBack, h, cScreenHeight + DrawHealthY + smallScreenOffset + 2 + SpritesData[sprFingerBack].Width div 4, 0, 1, -90);
+                Tint(Teams[0]^.Clan^.Color shl 8 or $FF);
+                DrawSpriteRotatedF(sprFinger, h, cScreenHeight + DrawHealthY + smallScreenOffset + 2 + SpritesData[sprFinger].Width div 4, 0, 1, -90);
+                untint;
             end;
         end;
-      end;
+    end;
 if smallScreenOffset <> 0 then
     begin
     SetScale(cDefaultZoomLevel);
-    if VisibleTeamsCount * 20 > Longword(cScreenHeight) div 5 then
+    if VisibleClansCount * 20 > Longword(cScreenHeight) div 5 then
         untint;
     end;
-VisibleTeamsCount:= v;
+VisibleClansCount:= v;
 end;
 
 procedure RenderAttackBar();
@@ -1529,7 +1515,7 @@ if (UIDisplay <> uiNone) and (isNotHiddenByCinematic) then
 
 // Team bars
 if (UIDisplay = uiAll) and (isNotHiddenByCinematic) then
-    RenderTeamsHealth;
+    RenderClansHealth;
 
 // Current hedgehog health in top left corner
 if ((UIDisplay = uiAll) or (UIDisplay = uiNoTeams)) and (isNotHiddenByCinematic) and

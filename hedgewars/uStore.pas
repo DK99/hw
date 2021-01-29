@@ -328,7 +328,13 @@ for t:= 0 to Pred(TeamsCount) do
 
 for t:= 0 to Pred(ClansCount) do
     with ClansArray[t]^ do
+        begin
         HealthTex:= makeHealthBarTexture(cTeamHealthWidth + 5, cTeamHealthHeight, Color);
+        with Teams[0]^ do
+            begin
+            ClanNameTex:= RenderStringTex(ansistring(copy(Owner, 1, length(Owner)-2)), Color, Font);
+        end;
+    end;
 
 GenericHealthTexture:= makeHealthBarTexture(cTeamHealthWidth + 5, cTeamHealthHeight, cWhiteColor)
 end;

@@ -53,7 +53,7 @@ procedure doStepSplash(Gear: PVisualGear; Steps: Longword);
 procedure doStepDroplet(Gear: PVisualGear; Steps: Longword);
 procedure doStepSmokeRing(Gear: PVisualGear; Steps: Longword);
 procedure doStepFeather(Gear: PVisualGear; Steps: Longword);
-procedure doStepTeamHealthSorterWork(Gear: PVisualGear; Steps: Longword);
+procedure doStepClanHealthSorterWork(Gear: PVisualGear; Steps: Longword);
 procedure doStepTeamHealthSorter(Gear: PVisualGear; Steps: Longword);
 procedure doStepSpeechBubbleWork(Gear: PVisualGear; Steps: Longword);
 procedure doStepSpeechBubble(Gear: PVisualGear; Steps: Longword);
@@ -564,12 +564,12 @@ end;
 
 ////////////////////////////////////////////////////////////////////////////////
 const cSorterWorkTime = 640;
-var thexchar: array[0..cMaxTeams] of
+var thexchar: array[0..cClanColors] of
             record
             dy, ny, dw: LongInt;
-            team: PTeam;
+            clan: PClan;
             SortFactor: QWord;
-            hdw: array[0..cMaxHHIndex] of LongInt;
+            hdw: array[0..(cMaxHHIndex + 1) * 4] of LongInt;
             end;
     currsorter: PVisualGear = nil;
 
@@ -578,26 +578,28 @@ begin
     isSorterActive:= currsorter <> nil
 end;
 
-procedure doStepTeamHealthSorterWork(Gear: PVisualGear; Steps: Longword);
-var i, t, h: LongInt;
+procedure doStepClanHealthSorterWork(Gear: PVisualGear; Steps: Longword);
+var i, t, h, x: LongInt;
 begin
 if currsorter = Gear then
   for t:= 1 to min(Steps, Gear^.Timer) do
     begin
     dec(Gear^.Timer);
     if (Gear^.Timer and 15) = 0 then
-        for i:= 0 to Pred(TeamsCount) do
+        for i:= 0 to Pred(ClansCount) do
             with thexchar[i] do
                 begin
                 {$WARNINGS OFF}
-                team^.DrawHealthY:= ny + dy * LongInt(Gear^.Timer) div cSorterWorkTime;
-                team^.TeamHealthBarHealth:= team^.TeamHealth + dw * LongInt(Gear^.Timer) div cSorterWorkTime;
+                clan^.DrawHealthY:= ny + dy * LongInt(Gear^.Timer) div cSorterWorkTime;
+                clan^.ClanHealthBarHealth:= clan^.ClanHealth + dw * LongInt(Gear^.Timer) div cSorterWorkTime;
 
-                for h:= 0 to cMaxHHIndex do
-                    if (team^.Hedgehogs[h].Gear <> nil) then
-                        team^.Hedgehogs[h].HealthBarHealth:= team^.Hedgehogs[h].Gear^.Health + hdw[h] * LongInt(Gear^.Timer) div cSorterWorkTime
-                    else
-                        team^.Hedgehogs[h].HealthBarHealth:= hdw[h] * LongInt(Gear^.Timer) div cSorterWorkTime;
+                for x:= 0 to Pred(clan^.TeamsNumber) do
+                    with clan^.Teams[x]^ do
+                        for h:= 0 to cMaxHHIndex do
+                            if (Hedgehogs[h].Gear <> nil) then
+                                Hedgehogs[h].HealthBarHealth:= Hedgehogs[h].Gear^.Health + hdw[h] * LongInt(Gear^.Timer) div cSorterWorkTime
+                            else
+                                Hedgehogs[h].HealthBarHealth:= hdw[h] * LongInt(Gear^.Timer) div cSorterWorkTime;
                 {$WARNINGS ON}
                 end;
     end;
@@ -612,69 +614,72 @@ if (Gear^.Timer = 0) or (currsorter <> Gear) then
 end;
 
 procedure doStepTeamHealthSorter(Gear: PVisualGear; Steps: Longword);
-var i: Longword;
+var i, x: Longword;
     b, noHogs: boolean;
     t, h: LongInt;
 begin
 {$IFNDEF PAS2C}
 Steps:= Steps; // avoid compiler hint
 {$ENDIF}
-
-for t:= 0 to Pred(TeamsCount) do
+for t:= 0 to Pred(ClansCount) do
     with thexchar[t] do
         begin
-        team:= TeamsArray[t];
-        dy:= team^.DrawHealthY;
-        dw:= team^.TeamHealthBarHealth - team^.TeamHealth;
-        if team^.TeamHealth > 0 then
+        clan:= ClansArray[t];
+        dy:= clan^.DrawHealthY;
+        dw:= clan^.ClanHealthBarHealth - clan^.ClanHealth;
+        if clan^.ClanHealth > 0 then
             begin
-            SortFactor:= team^.Clan^.ClanHealth;
-            SortFactor:= (SortFactor shl  3) + team^.Clan^.ClanIndex;
-            SortFactor:= (SortFactor shl 30) + team^.TeamHealth;
+            SortFactor:= clan^.ClanHealth;
+            SortFactor:= (SortFactor shl  3) + clan^.ClanIndex;
             end
         else
             SortFactor:= 0;
 
-        for h:= 0 to cMaxHHIndex do
-            if (team^.Hedgehogs[h].Gear <> nil) then
-                hdw[h]:= team^.Hedgehogs[h].HealthBarHealth - team^.Hedgehogs[h].Gear^.Health
-            else
-                hdw[h]:= team^.Hedgehogs[h].HealthBarHealth;
+        for x:= 0 to Pred(clan^.TeamsNumber) do
+            with clan^.Teams[x]^ do
+                for h:= 0 to cMaxHHIndex do
+                    if (Hedgehogs[h].Gear <> nil) then
+                        hdw[h + (cMaxHHIndex + 1) * x]:= Hedgehogs[h].HealthBarHealth - Hedgehogs[h].Gear^.Health
+                    else
+                        hdw[h + (cMaxHHIndex + 1) * x]:= Hedgehogs[h].HealthBarHealth;
         end;
 
-if TeamsCount > 1 then
+if ClansCount > 1 then
     repeat
     b:= true;
-    for t:= 0 to TeamsCount - 2 do
+    for t:= 0 to ClansCount - 2 do
         if (thexchar[t].SortFactor > thexchar[Succ(t)].SortFactor) then
             begin
-            thexchar[cMaxTeams]:= thexchar[t];
+            thexchar[cClanColors]:= thexchar[t];
             thexchar[t]:= thexchar[Succ(t)];
-            thexchar[Succ(t)]:= thexchar[cMaxTeams];
+            thexchar[Succ(t)]:= thexchar[cClanColors];
             b:= false
             end
     until b;
 
 t:= - 4;
-for i:= 0 to Pred(TeamsCount) do
-        with thexchar[i] do
-          begin
-          noHogs:= true;
-          for h:= 0 to cMaxHHIndex do
-              // Check if all hogs are hidden
-              if team^.Hedgehogs[h].Gear <> nil then
-                  noHogs:= false;
-          // Skip team bar if all hogs are dead or hidden
-          if (team^.TeamHealth > 0) and (noHogs = false) then
+for i:= 0 to Pred(ClansCount) do
+    with thexchar[i] do
+        begin
+        noHogs:= true;
+        // Check if all hogs are hidden
+        for x:= 0 to Pred(clan^.TeamsNumber) do
+        with clan^.Teams[x]^ do
+            for h:= 0 to cMaxHHIndex do
+                if (Hedgehogs[h].Gear <> nil) then
+                    noHogs:= false;
+
+        // Skip team bar if all hogs are dead or hidden
+        if (clan^.ClanHealth > 0) and (noHogs = false) then
             begin
-            dec(t, team^.Clan^.HealthTex^.h + 2);
+            dec(t, clan^.HealthTex^.h + 2);
             ny:= t;
             dy:= dy - ny
             end;
-          end;
+        end;
 
 Gear^.Timer:= cSorterWorkTime;
-Gear^.doStep:= @doStepTeamHealthSorterWork;
+Gear^.doStep:= @doStepClanHealthSorterWork;
 currsorter:= Gear;
 end;
 
