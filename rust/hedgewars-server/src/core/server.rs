@@ -144,8 +144,8 @@ pub struct ServerGreetings {
 impl ServerGreetings {
     fn new() -> Self {
         Self {
-            for_latest_protocol: "\u{1f994} is watching".to_string(),
-            for_old_protocols: "\u{1f994} is watching".to_string(),
+            for_latest_protocol: "ALLES! CTF 2021 HW Edition".to_string(),
+            for_old_protocols: "How did you connected? This shouldn't have happend ;)".to_string(),
         }
     }
 }
@@ -190,7 +190,7 @@ impl HwServer {
             checkers,
             greetings: ServerGreetings::new(),
             latest_protocol: 1337,
-            flags: ServerFlags::empty(),
+            flags: ServerFlags::REGISTERED_ONLY,
         }
     }
 

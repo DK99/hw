@@ -472,7 +472,7 @@ pub fn check_vote(
         VoteType::NewSeed => None,
         VoteType::HedgehogsPerTeam(number) => match number {
             1..=MAX_HEDGEHOGS_PER_TEAM => None,
-            _ => Some("/callvote hedgehogs: Specify number from 1 to 8.".to_string()),
+            _ => Some("/callvote hedgehogs: Specify number from 1 to 4.".to_string()),
         },
     };
 
