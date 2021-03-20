@@ -1,3 +1,5 @@
+We only modified the desktop client. All other clients (e.g. android, iOS, ...) will not work.
+
 Build Instructions:
 
 ```
