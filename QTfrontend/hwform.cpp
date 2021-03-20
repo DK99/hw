@@ -1168,10 +1168,13 @@ void HWForm::PlayDemoQuick(const QString & demofilename)
     game->PlayDemo(demofilename, false);
 }
 
-void HWForm::NetConnectQuick(const QString & host, quint16 port)
+void HWForm::NetConnectQuick(const QString & host, quint16 port, const QString & room, const QString & password)
 {
     GoToPage(ID_PAGE_MAIN);
     NetConnectServer(host, port, false);
+    if(room){
+        JoinRoom(room, password);
+    }
 }
 
 void HWForm::NetConnectServer(const QString & host, quint16 port, bool useTls)
