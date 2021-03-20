@@ -76,7 +76,7 @@ extern int years_since_foundation;
 #define SEASON_APRIL1 16
 
 //#define NETGAME_DEFAULT_SERVER "netserver.hedgewars.org"
-#define NETGAME_DEFAULT_SERVER "localhost"
+#define NETGAME_DEFAULT_SERVER "hwctf.alles.team"
 #define NETGAME_DEFAULT_PORT 46631
 #define HEDGEHOGS_PER_TEAM 4
 
