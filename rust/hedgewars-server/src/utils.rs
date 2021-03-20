@@ -71,6 +71,7 @@ pub fn protocol_version_string(protocol_number: u16) -> &'static str {
         58 => "1.0.0-dev",
         59 => "1.0.0",
         60 => "1.0.1-dev",
+        1337 => "HW-CTF",
         _ => "Unknown",
     }
 }

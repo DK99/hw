@@ -3,7 +3,7 @@ use super::{
     client::HwClient,
     indexslab::IndexSlab,
     room::HwRoom,
-    types::{ClientId, GameCfg, RoomId, ServerVar, TeamInfo, Vote, VoteType, Voting},
+    types::{ClientId, GameCfg, RoomId, ServerVar, TeamInfo, Vote, VoteType, Voting, MAX_HEDGEHOGS_PER_TEAM, MAX_HEDGEHOGS_PER_CLAN},
 };
 use crate::utils;
 
@@ -189,7 +189,7 @@ impl HwServer {
             rooms,
             checkers,
             greetings: ServerGreetings::new(),
-            latest_protocol: 58,
+            latest_protocol: 1337,
             flags: ServerFlags::empty(),
         }
     }
@@ -829,14 +829,24 @@ impl<'a> HwRoomControl<'a> {
         use SetHedgehogsError::*;
         let (client, room) = self.get_mut();
         let addable_hedgehogs = room.addable_hedgehogs();
+        
+        let team_color = if let Some((_, team)) = room.find_team_and_owner_mut(|t| t.name == team_name) {
+            team.color     
+        } else {
+            return Err(NoTeam)
+        };
+
+        let clan_hedges = room.clan_hedge_count(team_color);
+
         if let Some((_, team)) = room.find_team_and_owner_mut(|t| t.name == team_name) {
-            let max_hedgehogs = min(
+            let max_hedgehogs = min(min(min(
                 super::room::MAX_HEDGEHOGS_IN_ROOM,
                 addable_hedgehogs + team.hedgehogs_number,
-            );
+            ), MAX_HEDGEHOGS_PER_TEAM), MAX_HEDGEHOGS_PER_CLAN - (clan_hedges - team.hedgehogs_number));
             if !client.is_master() {
                 Err(NotMaster)
             } else if !(1..=max_hedgehogs).contains(&number) {
+                team.hedgehogs_number = max_hedgehogs;
                 Err(InvalidNumber(team.hedgehogs_number))
             } else {
                 team.hedgehogs_number = number;
@@ -889,10 +899,12 @@ impl<'a> HwRoomControl<'a> {
     pub fn set_team_color(&mut self, team_name: &str, color: u8) -> Result<(), ModifyTeamError> {
         use ModifyTeamError::*;
         let (client, room) = self.get_mut();
+
         if let Some((owner, team)) = room.find_team_and_owner_mut(|t| t.name == team_name) {
             if !client.is_master() {
                 Err(NotMaster)
             } else {
+                team.hedgehogs_number = 0;
                 team.color = color;
                 self.server.clients[owner].clan = Some(color);
                 Ok(())

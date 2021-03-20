@@ -146,7 +146,7 @@ fn opt_space_arg<'a>(input: &'a [u8]) -> HwResult<'a, Option<String>> {
     ))(input)
 }
 
-fn hedgehog_array(input: &[u8]) -> HwResult<[HedgehogInfo; 8]> {
+fn hedgehog_array(input: &[u8]) -> HwResult<[HedgehogInfo; 4]> {
     fn hedgehog_line(input: &[u8]) -> HwResult<HedgehogInfo> {
         map(
             tuple((terminated(a_line, newline), a_line)),
@@ -154,18 +154,14 @@ fn hedgehog_array(input: &[u8]) -> HwResult<[HedgehogInfo; 8]> {
         )(input)
     }
 
-    let (i, (h1, h2, h3, h4, h5, h6, h7, h8)) = tuple((
-        terminated(hedgehog_line, newline),
-        terminated(hedgehog_line, newline),
-        terminated(hedgehog_line, newline),
-        terminated(hedgehog_line, newline),
+    let (i, (h1, h2, h3, h4)) = tuple((
         terminated(hedgehog_line, newline),
         terminated(hedgehog_line, newline),
         terminated(hedgehog_line, newline),
         hedgehog_line,
     ))(input)?;
 
-    Ok((i, [h1, h2, h3, h4, h5, h6, h7, h8]))
+    Ok((i, [h1, h2, h3, h4]))
 }
 
 fn voting(input: &[u8]) -> HwResult<VoteType> {

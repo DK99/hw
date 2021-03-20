@@ -26,7 +26,7 @@ impl IoThread {
         let (io_tx, core_rx) = channel::channel();
 
         let mut db = Database::new();
-        db.connect("localhost");
+        db.connect("mysql://hedgewars:2yB9OnKbYpYxBrQeguJOV4PJIrRafV@hedgewars-db:3306/hedgewars");
 
         thread::spawn(move || {
             while let Ok((request_id, task)) = io_rx.recv() {

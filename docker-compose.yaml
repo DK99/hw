@@ -1,0 +1,19 @@
+version: "3.3"
+services:
+  hedgewars-server:
+    build: 
+      dockerfile: Dockerfile-server
+      context: .
+    container_name: hedgewars-server
+    ports: 
+      - "46631:46631"
+  hedgewars-db:
+    image: mariadb
+    container_name: hedgewars-db
+    environment: 
+      - MYSQL_RANDOM_ROOT_PASSWORD=yes
+      - MYSQL_DATABASE=hedgewars
+      - MYSQL_USER=hedgewars
+      - MYSQL_PASSWORD=2yB9OnKbYpYxBrQeguJOV4PJIrRafV
+    volumes: 
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql

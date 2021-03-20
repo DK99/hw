@@ -33,7 +33,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#define HEDGEHOGS_PER_TEAM 8
+#define HEDGEHOGS_PER_TEAM 4
 #define DEFAULT_HEDGEHOG_COUNT 4
 #define DEFAULT_COLOR_INDEX 0
 

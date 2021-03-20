@@ -25,4 +25,4 @@ WORKDIR /src
 
 VOLUME "/.hedgewars"
 
-CMD cp -r /.hedgewars /root/.hedgewars && cmake -DNOSERVER=0 -DNOVIDEOREC=1 -DNOPNG=1 . && make install && ./bin/hedgewars
+CMD cp -r /.hedgewars /root/.hedgewars && cmake -DCMAKE_BUILD_TYPE="Release" -DNOSERVER=0 -DNOVIDEOREC=1 -DNOPNG=1 -OFFICIAL_SERVER=1 . && make install && ./bin/hedgewars

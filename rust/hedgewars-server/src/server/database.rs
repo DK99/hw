@@ -61,6 +61,10 @@ impl Database {
         server_salt: &str,
     ) -> Result<Option<AccountInfo>, Error> {
         if let Some(pool) = &self.pool {
+            if protocol != 1337 {
+                return Ok(None);
+            }
+
             if let Some(row) = pool.first_exec(GET_ACCOUNT_QUERY, params! { "username" => nick })? {
                 let (mut password, is_admin, is_contributor) =
                     from_row_opt::<(String, i32, i32)>(row)?;

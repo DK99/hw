@@ -10,7 +10,7 @@ use serde_derive::{Deserialize, Serialize};
 use serde_yaml;
 use std::{collections::HashMap, iter};
 
-pub const MAX_TEAMS_IN_ROOM: u8 = 8;
+pub const MAX_TEAMS_IN_ROOM: u8 = 16;
 pub const MAX_HEDGEHOGS_IN_ROOM: u8 = MAX_TEAMS_IN_ROOM * MAX_HEDGEHOGS_PER_TEAM;
 
 fn client_teams_impl(
@@ -220,6 +220,17 @@ impl HwRoom {
             .iter()
             .filter(move |(_, t)| t.color == color)
             .map(|(id, _)| *id)
+    }
+
+    pub fn clan_teams(&self, color: u8) -> impl Iterator<Item = &TeamInfo> {
+        self.teams
+            .iter()
+            .filter(move |(_, t)| t.color == color)
+            .map(|(_, team)| team)
+    }
+
+    pub fn clan_hedge_count(&self, color: u8) -> u8 {
+        self.clan_teams(color).map(|t| t.hedgehogs_number).sum()
     }
 
     pub fn find_team_owner(&self, team_name: &str) -> Option<(ClientId, &str)> {
