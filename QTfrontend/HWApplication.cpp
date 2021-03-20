@@ -19,6 +19,7 @@
 #include "HWApplication.h"
 #include <QFileOpenEvent>
 #include <QEvent>
+#include <QUrlQuery>
 
 #include "MessageDialog.h"
 
@@ -79,7 +80,7 @@ bool HWApplication::event(QEvent *event)
         scheme = openEvent->url().scheme();
         path = openEvent->url().path();
         address = openEvent->url().host();
-        query = openEvent->url().query();
+        query = QUrlQuery(openEvent->url());
         room = query.queryItemValue(QStringLiteral("room"));
         password = query.queryItemValue(QStringLiteral("password"));
 

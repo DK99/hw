@@ -1172,8 +1172,8 @@ void HWForm::NetConnectQuick(const QString & host, quint16 port, const QString &
 {
     GoToPage(ID_PAGE_MAIN);
     NetConnectServer(host, port, false);
-    if(room){
-        JoinRoom(room, password);
+    if(hwnet && !room.isEmpty()){
+        hwnet->JoinRoom(room, password);
     }
 }
 
