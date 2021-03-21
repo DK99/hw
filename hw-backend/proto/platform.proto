@@ -1,0 +1,781 @@
+syntax = "proto3";
+package platform;
+
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service Platform {
+    // Get current platform state.
+    rpc GetState (GetStateRequest) returns (stream State) {
+        option (google.api.http) = {
+            get: "/v1/state"
+        };
+    }
+
+    // Boring unary state endpoint for CTFtime
+    rpc GetStandings (google.protobuf.Empty) returns (State) {
+        option (google.api.http) = {
+            get: "/v1/standings.json"
+        };
+    }
+
+    // Get all transactions (requires admin privs)
+    rpc GetTransactions (GetTransactionsRequest) returns (stream GetTransactionsResponse) {
+        option (google.api.http) = {
+            get: "/v1/transactions"
+        };
+    }
+
+    // Get a stream of koth ticks (not including tick data)
+    rpc GetKothHistory (google.protobuf.Empty) returns (stream KothHistoryTick) {
+    }
+
+    // Get a stream of valid flag submissions
+    rpc GetFlagSubmissions (google.protobuf.Empty) returns (stream ValidFlagSubmission) {
+    }
+
+    // Get a stream of valid flag submissions
+    rpc GetFlagSubmissionsBatched (google.protobuf.Empty) returns (stream ValidFlagSubmissionBatch) {
+    }
+
+    // Get a stream of scoreboard score snapshots
+    rpc GetScoreboardHistory (google.protobuf.Empty) returns (stream ScoreboardBatch) {
+    }
+
+    // Get all tasks (requires contestant privs)
+    rpc GetTasks (GetTasksRequest) returns (stream GetTasksResponse) {
+        option (google.api.http) = {
+            get: "/v1/tasks"
+        };
+    }
+
+    // Submit flag
+    rpc SubmitFlag (SubmitFlagRequest) returns (SubmitFlagResponse) {
+        option (google.api.http) = {
+            post: "/v1:submitFlag"
+            body: "*"
+        };
+    }
+
+    // Submit writeup
+    rpc SubmitWriteup (SubmitWriteupRequest) returns (SubmitWriteupResponse) {
+        option (google.api.http) = {
+            post: "/v1:submitWriteup"
+            body: "*"
+        };
+    }
+
+     // Submit koth tick from external server
+     rpc SubmitKothTick (SubmitKothTickRequest) returns (SubmitKothTickResponse) {
+        option (google.api.http) = {
+            post: "/v1:submitKoth"
+            body: "*"
+        };
+    }
+
+    // Authenticate to the server (request JWT token)
+    rpc Authenticate (AuthenticateRequest) returns (AuthenticateResponse) {
+        option (google.api.http) = {
+            post: "/v1:authenticate"
+            body: "*"
+        };
+    }
+
+    // Get all profiles
+    rpc GetProfiles (GetProfilesRequest) returns (stream GetProfilesResponse) {
+        option (google.api.http) = {
+            get: "/v1/profiles"
+        };
+    }
+
+    // GetOwnProfile
+    rpc GetOwnProfile (GetOwnProfileRequest) returns (stream Profile) {
+        option (google.api.http) = {
+            get: "/v1/getOwnProfile"
+        };
+    }
+
+    // Create profile
+    rpc CreateProfile (CreateProfileRequest) returns (Profile) {
+        option (google.api.http) = {
+            put: "/v1/profiles"
+            body: "*"
+        };
+    }
+
+    // Update profile
+    rpc UpdateProfile (UpdateProfileRequest) returns (Profile) {
+        option (google.api.http) = {
+            put: "/v1/profiles"
+            body: "*"
+        };
+    }
+
+    // Get current Proof of Work difficulty
+    rpc BrokerGetDifficulty (GetDifficultyRequest) returns (GetDifficultyResponse) {
+        option (google.api.http) = {
+            get: "/v1/difficulty"
+        };
+    }
+
+    // Create a new session
+    rpc BrokerCreateSession (CreateSessionRequest) returns (BrokerSession) {
+        option (google.api.http) = {
+          post: "/v1/sessions"
+          body: "*"
+        };
+    }
+
+    // Create a new session
+    rpc BrokerGetMySessions (GetMySessionsRequest) returns (GetMySessionsResponse) {
+        option (google.api.http) = {
+          get: "/v1/sessions"
+        };
+    }
+
+    // Get session status
+    rpc BrokerGetSessionStatus (GetSessionStatusRequest) returns (GetSessionStatusResponse) {
+        option (google.api.http) = {
+            get: "/v1/sessions/{id}/status"
+        };
+    }
+    // Terminate session
+    rpc BrokerTerminateSession (TerminateSessionRequest) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            delete: "/v1/sessions/{id}"
+        };
+    }
+
+    // Request Queue Position
+    rpc RequestQueuePosition (RequestQueuePositionRequest) returns (RequestQueuePositionResponse) {
+        option (google.api.http) = {
+            post: "/v1:requestQueue"
+            body: "*"
+        };
+    }
+    
+    // Get Queue Status
+    // Redeacts the additional information for queue entries except for the own team
+    rpc GetQueueStatus (GetQueueStatusRequest) returns (GetQueueStatusResponse) {
+        option (google.api.http) = {
+            post: "/v1:getQueueStatus"
+            body: "*"
+        };
+    }
+
+    // Update Queue Status
+    // Can only be called from authenticated clients, e.g. via the jwt token issues for external services
+    rpc UpdateQueueStatus (UpdateQueueStatusRequest) returns (UpdateQueueStatusResponse) {
+        option (google.api.http) = {
+            post: "/v1:updateQueueStatus"
+            body: "*"
+        };
+    }
+
+    // Get all notifications
+    rpc GetNotifications (GetNotificationsRequest) returns (stream GetNotificationsResponse) {
+        option (google.api.http) = {
+            get: "/v1/notifications"
+        };
+    }
+}
+
+message GetDifficultyRequest {
+    string task = 1;
+}
+
+message GetDifficultyResponse {
+    uint32 major = 1;
+    uint32 minor = 2;
+}
+
+message CreateSessionRequest {
+    // Nonce as hex encoded binary string, consisting of three uint32 values:
+    //   - random number ("alpha", might be used as static identifier)
+    //   - millisecond Unix timestamp ("anchor")
+    //   - random number ("nonce")
+    string nonce = 1;
+    // PoW proof as hex encoded binary string SHA-256 of the nonce.
+    string hash = 2;
+    string task = 3;
+}
+
+message BrokerSession {
+    string id = 1;
+    string task = 2;
+}
+
+message GetSessionStatusRequest {
+    string id = 1;
+    string task = 2;
+}
+
+message TerminateSessionRequest {
+    string id = 1;
+    string task = 2;
+}
+
+message GetMySessionsRequest {
+    // Filter results for task
+    string task = 1;
+}
+message GetMySessionsResponse {
+    message SessionMeta {
+        // Session identifier (secret)
+        string id = 1;
+        // Session task
+        string task = 2;
+    }
+    repeated SessionMeta sessions = 1;
+}
+
+message GetSessionStatusResponse {
+    enum State {
+        // State is unknown
+        UNKNOWN = 0;
+        // Session is running and accepting connections
+        ALIVE = 1;
+        // Session has failed permanently.
+        FAILED = 2;
+        // Session is activating
+        ACTIVATING = 3;
+        // Session is deactivating
+        DEACTIVATING = 4;
+    }
+
+    // Session identifier (secret)
+    string id = 1;
+    // Session state
+    State state = 2;
+    // Session endpoints (i.e. https://session.broker.domain, tls://session.broker, ssh://session@broker)
+    // Used to render 'connect here' UI.
+    message SessionEndpoint {
+        enum EndpointKind {
+            TLS = 0;
+            HTTPS = 1;
+            SSH = 2;
+        }
+
+        EndpointKind kind = 1;
+        string address = 2;
+        int32 port = 3;
+    }
+    repeated SessionEndpoint active_endpoints = 3;
+}
+
+message GetStateRequest {
+    bool streaming = 1;
+}
+
+message GetProfilesRequest {
+    bool streaming = 1;
+}
+
+message GetOwnProfileRequest {
+    bool streaming = 1;
+}
+
+message UpdateProfileRequest {
+    // The profile to update
+    Profile profile = 1;
+
+    // A client secret s.t. only we (and the discord script) can update the users profile
+    string secret = 2;
+}
+
+message GetProfilesResponse {
+    repeated Profile profiles = 1;
+}
+
+message CreateProfileRequest {
+    Profile profile = 1;
+}
+
+
+enum ProfileType {
+    CTFTime = 0;
+    Discord = 1;
+    Bot = 2;
+}
+
+// {"id":"18419","name":"ALLES!","country":"DE"}
+message Profile {
+    // Team display name
+    string name = 1;
+    // Unique ID for this team
+    string id = 2;
+    string country = 3;
+    // Profile type (i.e. does the ID link to a CTFTime page?)
+    ProfileType type = 4;
+    // Admin profiles can view hidden challenges
+    bool admin = 5;
+    // Discord avatar ID
+    string avatar = 6;
+}
+
+message SubmitFlagRequest {
+    // Flag to submit.
+    string flag = 1;
+}
+
+message SubmitFlagResponse {
+    string task = 1;
+}
+
+message SubmitWriteupRequest {
+    // Writeup to submit.
+    string writeup = 1;
+    string taskName = 2;
+}
+
+message KothTickData {
+    string team = 1;
+    int32 points = 2;
+
+    // Addtional koth tick data
+    bytes additionalData = 3;
+}
+
+message SubmitKothTickRequest {
+    // Name of the koth task
+    string task = 1;
+
+    // The koth data for each team
+    repeated KothTickData tickData = 2;
+}
+
+message SubmitKothTickResponse {
+    int32 status = 1;
+}
+
+message AuthenticateRequest {
+    // OAuth authentication code
+    string authentication_code = 1;
+    // Requested display name
+    string display_name = 2;
+    enum Type {
+        CTFTime = 0;
+        Discord = 1;
+    }
+    // Authentication provider
+    Type type = 3;
+}
+
+message AuthenticateResponse {
+    // Platform auth token
+    string jwt = 1;
+
+    // Internal UID. Unique per team.
+    string uid = 2;
+
+    // Display name. Teams might be able to change these during the competition.
+    string display_name = 3;
+
+    // Some immediate feedback about the authenticated user:
+    // Discord username
+    string discord_username = 4;
+    // Discord user discriminator (4-digit tag)
+    string discord_discriminator = 5;
+    // CTFTime team name
+    string ctftime_name = 6;
+    // CTFTime team country
+    string ctftime_country = 7;
+
+    ProfileType type = 8;
+
+    // Discord Avatar id
+    string discord_avatar = 9;
+}
+
+message SubmitWriteupResponse {
+    string task = 1;
+}
+
+message GetTransactionsRequest {
+    bool streaming = 1;
+}
+
+// ValidFlagSubmission represents an entry in the flag submission log.
+message ValidFlagSubmission {
+    google.protobuf.Timestamp timestamp = 1;
+    string team_id = 2;
+    string task = 3;
+    Profile submitter = 4;
+    bool first_blood = 5;
+}
+
+message ValidFlagSubmissionBatch {
+    repeated ValidFlagSubmission submissions = 1;
+}
+
+message GetTransactionsResponse {
+    repeated Transaction transactions = 1;
+}
+
+message KothHistoryTick {
+    google.protobuf.Timestamp timestamp = 1;
+    message KothHistoryDatapoint {
+        string team = 1;
+        int32 points = 2;
+    }
+    repeated KothHistoryDatapoint datapoints = 2;
+    string task = 3;
+}
+
+message GetTasksRequest {
+    bool streaming = 1;
+}
+
+message GetTasksResponse {
+    repeated Task tasks = 1;
+}
+
+message Transaction {
+    google.protobuf.Timestamp timestamp = 2;
+
+    enum Type {
+        // Invalid transaction (was: EMPTY). Reject transactions that default to this type.
+        INVALID = 0;
+        // Team provided a writeup
+        WRITEUP = 2;
+        // Platform configuration update
+        PLATFORM_CONFIG = 4;
+        // Tasks update
+        TASKS = 5;
+        // Update [ DiscordUID -> Team ] assignments
+        TEAM_ASSIGNMENTS = 6;
+        // Adds new team to standings
+        CREATE_PROFILE = 7;
+        // Flag submission
+        FLAG_SUBMIT = 8;
+        // King of the Hill tick
+        KOTH_TICK = 9;
+        // Update profile (deprecated/not implemented)
+        UPDATE_PROFILE = 10;
+        // Empty TX that triggers push of new ContestState to clients
+        CONTEST_STATE_UPDATE = 11;
+        // Adds an queue entry for a task
+        QUEUE_REQUEST = 12;
+        // Adds an notification to the list
+        NOTIFICATION = 13; 
+        // Initialize JWT key
+        INITIALIZE_JWT = 14;
+    }
+
+    // Transaction type
+    Type type = 3;
+    // Team identifier
+    string team = 4;
+    // Task identifier
+    string task = 5;
+    // Platform configuration
+    PlatformConfiguration platform_config = 6;
+    // Tasks
+    repeated Task tasks = 7;
+    // Transaction that has been redacted.
+    // Note: This allows un-deleting the transaction later.
+    bool deleted = 8;
+    // Flag hash (for flag submission transactions)
+    string flag_hash = 9;
+    // KotH tick data if its a KotH challenge
+    repeated KothTickData kothData = 10;
+    // For UPDATE_PROFILE and CREATE_PROFILE: The new profile
+    //
+    // For FLAG_SUBMIT: The profile of the flag submitter (used to distinguish submitter and team)
+    Profile profile = 11;
+    // Queue update 
+    QueueEntry1 queue_entry = 12;
+    // Notification update
+    Notification notification = 13;
+    // Initialize jwt key
+    string jwtkey = 14;
+    // Update display name, discord avatar, ... on CREATE_PROFILE
+    bool update_profile = 15;
+}
+
+// https://ctftime.org/json-scoreboard-feed
+message Standing {
+    // Team identifier
+    string team_id = 1;
+    // Score
+    int32 score = 2;
+
+    message TaskStat {
+        // Points given for the task.
+        int32 points = 1;
+        // Points at the time of submitting flag
+        // Deprecated: Showing this anywhere would just be confusing.
+        int32 pointsAtSolve = 2;
+        // UNIX timestamp when the team has solved the task.
+        // 32bit because it would have to be a JSON string otherwise,
+        // which violates the CTFtime spec.
+        int32 time = 3;
+        // Same thing, but as a proper timestamp
+        google.protobuf.Timestamp height = 4;
+
+    }
+
+    map<string,TaskStat> task_stats = 3;
+
+    // Team position (one-indexed)
+    int32 pos = 4;
+
+    // Last accepted flag as UNIX timestamp
+    // CTFTime can use this to verify and reproduce our `pos` ranking.
+    int32 lastAccept = 5;
+
+    // Same thing, but as a proper timestamp
+    google.protobuf.Timestamp lastAcceptTS = 6;
+};
+
+// Enumerates the different states a queue entry to be in 
+enum QueueState {
+     // Queue entry is queued, waiting for claim by worker process
+    INVALID = 0;
+    // Queue entry is queued, waiting for claim by worker process
+    QUEUED = 1;
+    // Entry was claimed by a worker process. Waiting for the worker to spawn and fill the additional information
+    CLAIMED = 2;
+    // Worker was spawned, running
+    QUEUE_RUNNING = 3; // RUNNING can't be reused, protbuf stuff -.- 
+    // Worker is done and instance was killed
+    FINISHED = 4;
+}
+
+// No clue why QueueEntry doesn't work with a map<int, QueueEntry>, but QueueEntry1 does...
+message QueueEntry1 {
+    string team = 1;
+    QueueState state = 2;
+    google.protobuf.Timestamp endtime = 3;
+    string additional_information = 4;
+    string id = 5;
+}
+
+
+message TaskState {
+    // Points
+    int32 points = 1;
+    // Solved by?
+    repeated string solved_by = 2;
+    // First blood team
+    string first_blood = 3;
+    // Writeup submitted by?
+    repeated string writeup_by = 4;
+    // KotH Points per team
+    map<string,float> points_koth = 5;
+    // KotH ticks left
+    int32 ticks_left = 6;
+    // Task queue. QueueEntry Id is the key, value is actual queue entry
+    // Could be a `repeated QueueEntry`, but those are not dynamically sized and cause issues...
+    map<string,QueueEntry1> queue = 7;
+
+}
+
+// TODO: Move into "Task" message? Threw compiler errors for me
+enum TaskType {
+    // Jeopardy challenge with a flag
+    JEOPARDY = 0;
+    // King of the hill challenge with ticks
+    KOTH = 1;
+}
+
+message Task {
+    // Task shorthand name
+    string name = 1;
+    // Task category (crypto, misc, ...)
+    string category = 2;
+    // Expected difficulty
+    string difficulty = 3;
+    // Challenge author
+    string author = 4;
+    // Task description (text/markdown)
+    string description = 5;
+    // Flag hash
+    // TODO: this could/should be bytes?
+    string flag = 6;
+    // Accept submissions and show task?
+    bool enabled = 7;
+    // Task dependencies (names)
+    repeated string dependencies = 8;
+    // Static attached resources
+    repeated Task.File files = 9;
+    message File {
+        string name = 1;
+        string sha256sum = 2;
+        // FIXME: There's no reason for this to be here / public
+        bool notInGit = 3;
+    }
+
+    TaskType type = 10;
+    // Alternative display name
+    string displayName = 11;
+    // Task points for static scoring
+    int32 points = 12;
+    // Enable and require writeups for this task
+    bool enable_writeups = 13;
+    // Number of ticks in case of KotH challenge
+    int32 ticks = 14;
+    // Task provides broker-based sessions
+    string broker = 15;
+    // User-facing protocol for the broker-based sessions (ie https, tls, ssh). Defaults to tls.
+    string brokerProtocol = 16;
+    // Indicates if the task is queueable
+    bool queueable = 17;
+    // TODO
+    repeated string verified_by = 18;
+    // Broker network policy (default, allow-outgoing, ...)
+    repeated string brokerNet = 19;
+
+    message Deployment {
+        message Container {
+            string image = 1;
+        }
+        // List of containers to deploy inside the challenge pod (all sharing the
+        // same network namespace!).
+        repeated Container containers = 1;
+
+        message IngressPort {
+            string type = 1;
+
+            // Name of the port to use as part of the connection string.
+            string name = 2;
+            // Port to forward inbound connections to.
+            uint64 port = 3;
+            // Frontend rendering style.
+            string displayStyle = 4;
+        }
+        // Ingress routing to the pod.
+        repeated IngressPort ports = 2;
+
+        // List of extra network policies that should apply to the pod.
+        repeated string networkPolicies = 3;
+    }
+    Deployment deployment = 20;
+}
+
+// State represents the (visible) game state after a given transaction has occurred.
+// JSON compatible with https://ctftime.org/json-scoreboard-feed
+message State {
+    // Last state update
+    google.protobuf.Timestamp height = 1;
+    repeated Standing standings = 2;
+    map<string, TaskState> task_states = 3;
+    Contest contest = 4;
+}
+
+message PlatformConfiguration {
+    bool dynamicScoring = 1;
+    int32 minPoints = 2;
+    int32 maxPoints = 3;
+    ContestStateless contest = 4;
+    // If true, all profiles are their own team (Profile name = Team name).
+    // Creating a team with the name "Admin" is prohibited.
+    //
+    // If false, only Discord UIDs listed in teamAssignments may create a profile
+    // and are then automatically assigned to their configured team.
+    bool autoTeams = 5;
+    // Assignments of Discord UIDs to team names.
+    // The team with the name "Admin" won't show on the scoreboard and won't be able to submit flags.
+    map<string, string> teamAssignments = 6;
+}
+
+message ScoreboardSnapshot {
+    google.protobuf.Timestamp height = 1;
+    repeated double points = 2;
+}
+
+message ScoreboardBatch {
+    repeated string teamIDs = 1;
+    repeated ScoreboardSnapshot ticks = 2;
+    bool clear = 3;
+}
+
+// TransactionAggregate is the internal state after each transaction has been applied.
+message TransactionAggregate {
+    uint64 height = 1;
+    google.protobuf.Timestamp timestamp = 2;
+    repeated Task tasks = 3;
+    map<string, TaskState> task_states = 4;
+    repeated ScoreboardSnapshot scoreboard_history = 5; // deprecated
+    repeated Standing standings = 6;
+    map<string, google.protobuf.Timestamp> last_accept = 7;
+    PlatformConfiguration platform_configuration = 8;
+    repeated ValidFlagSubmission flag_submissions = 9;
+    map<string, Profile> profiles = 10;
+    repeated KothHistoryTick koth_history = 11;
+    repeated Notification notifications = 12;
+    string jwtKey = 13;
+}
+
+enum ContestState {
+    // During the CTF, indicates running challenges and open flag submission.
+    RUNNING = 0;
+    // Contest ended and flag submission is closed.
+    SUBMISSION_CLOSED = 1;
+    // Registration is open but no challenges are available.
+    NOT_YET_STARTED = 2;
+}
+
+message Contest {
+    ContestState state = 1;
+    google.protobuf.Timestamp startTime = 2;
+    google.protobuf.Timestamp endTime = 3;
+}
+
+message ContestStateless {
+    google.protobuf.Timestamp startTime = 1;
+    google.protobuf.Timestamp endTime = 2;
+}
+
+
+message RequestQueuePositionRequest {
+    string task = 1;
+}
+
+message RequestQueuePositionResponse {
+    bool success = 1;
+}
+
+message GetQueueStatusRequest {
+    string task = 1;
+}
+
+message GetQueueStatusResponse {
+    repeated QueueEntry1 queue = 1;
+}
+
+message UpdateQueueStatusRequest {
+    string task = 1;
+    string id = 2;
+    QueueState state = 3;
+    string additionalInfo = 4;
+    google.protobuf.Timestamp endtime = 5;
+}
+
+message UpdateQueueStatusResponse {
+    bool success = 1;
+}
+
+enum Severity {
+    SUCCESS = 0;
+    DANGER = 1;
+    WARNING = 2;
+    INFO = 3;
+}
+
+message Notification {
+    // Last state update
+    google.protobuf.Timestamp time = 1;
+    string title = 2;
+    string text = 3;
+    Severity severity = 4;
+}
+
+message GetNotificationsRequest {
+    bool streaming = 1;
+}
+
+message GetNotificationsResponse {
+    repeated Notification notifications = 1;
+}
