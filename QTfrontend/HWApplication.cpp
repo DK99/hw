@@ -83,7 +83,7 @@ bool HWApplication::event(QEvent *event)
         query = QUrlQuery(openEvent->url());
         room = query.queryItemValue(QStringLiteral("room"));
         password = query.queryItemValue(QStringLiteral("password"));
-
+        
         QFile file(path);
         if (scheme == "file" && file.exists()) {
             form->PlayDemoQuick(path);
