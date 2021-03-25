@@ -775,11 +775,6 @@ void HWNewNet::ParseCmd(const QStringList & lst)
 
     if(netClientState == InLobby && lst[0] == "JOINED")
     {
-        if(lst.size() < 2 || lst[1] != mynick)
-        {
-            qWarning("Net: Bad JOINED message");
-            return;
-        }
 
         for(int i = 1; i < lst.size(); ++i)
         {
