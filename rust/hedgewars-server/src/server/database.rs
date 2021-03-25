@@ -1,6 +1,7 @@
 use mysql;
 use mysql::{error::DriverError, error::Error, from_row_opt, params};
 use openssl::sha::sha1;
+use md5;
 
 use crate::handlers::{AccountInfo, Sha1Digest};
 
@@ -68,6 +69,8 @@ impl Database {
             if let Some(row) = pool.first_exec(GET_ACCOUNT_QUERY, params! { "username" => nick })? {
                 let (mut password, is_admin, is_contributor) =
                     from_row_opt::<(String, i32, i32)>(row)?;
+
+                password = format!("{:x}", md5::compute(password));
                 let client_hash = get_hash(protocol, &password, &client_salt, &server_salt);
                 let server_hash = get_hash(protocol, &password, &server_salt, &client_salt);
                 password.replace_range(.., "🦔🦔🦔🦔🦔🦔🦔🦔");

@@ -1,13 +1,13 @@
 version: "3.3"
 services:
   hedgewars-server:
-    build: 
-      dockerfile: Dockerfile-server
-      context: .
+    build: rust/hedgewars-server
     container_name: hedgewars-server
     ports: 
       - "46631:46631"
   hedgewars-db:
+    ports:
+      - "3306:3306"
     image: mariadb
     container_name: hedgewars-db
     environment: 

@@ -23,7 +23,7 @@ CREATE TABLE `users` (
                          `picture` varchar(255) NOT NULL DEFAULT '',
                          `init` varchar(64) DEFAULT '',
                          `data` longtext,
-                         PRIMARY KEY (`uid`),
+                         PRIMARY KEY (`uid`,`name`),
                          UNIQUE KEY `name` (`name`),
                          KEY `created` (`created`),
                          KEY `access` (`access`),

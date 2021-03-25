@@ -7,6 +7,7 @@ use mio::{net::*, *};
 use std::{env, str::FromStr as _, time::Duration};
 
 mod core;
+mod grpc;
 mod handlers;
 mod protocol;
 mod server;
@@ -59,6 +60,15 @@ fn main() {
     hw_network.register(&poll).unwrap();
 
     let mut events = Events::with_capacity(1024);
+
+    std::thread::spawn(|| {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(grpc::listen_users())
+            .expect("GRPC failed :(");
+    });
 
     loop {
         let timeout = if hw_network.has_pending_operations() {
