@@ -69,7 +69,7 @@ class HWForm : public QMainWindow
         void GoToVideos();
         void GoToTraining();
 
-        void NetConnectQuick(const QString & host, quint16 port);
+        void NetConnectQuick(const QString & host, quint16 port, const QString & room, const QString & password);
         void PlayDemoQuick(const QString & demofilename);
 
     private slots:

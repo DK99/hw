@@ -136,6 +136,9 @@ QIcon finishedIcon;
 QIcon notFinishedIcon;
 GameUIConfig* HWForm::config = NULL;
 
+QString g_room, g_password;
+bool g_shouldJoinRoom = false;
+
 HWForm::HWForm(QWidget *parent, QString styleSheet)
     : QMainWindow(parent)
     , game(0)
@@ -1168,9 +1171,14 @@ void HWForm::PlayDemoQuick(const QString & demofilename)
     game->PlayDemo(demofilename, false);
 }
 
-void HWForm::NetConnectQuick(const QString & host, quint16 port)
+void HWForm::NetConnectQuick(const QString & host, quint16 port, const QString & room, const QString & password)
 {
     GoToPage(ID_PAGE_MAIN);
+    if(!room.isEmpty()){
+        g_room = room;
+        g_password = password;
+        g_shouldJoinRoom = true;
+    }
     NetConnectServer(host, port, false);
 }
 
@@ -1758,6 +1766,9 @@ void HWForm::NetRedirected(quint16 port)
 void HWForm::NetConnected()
 {
     GoToPage(ID_PAGE_ROOMSLIST);
+    if(g_shouldJoinRoom){
+        hwnet->JoinRoom(g_room, g_password);
+    }
 }
 
 void HWForm::NetGameEnter()

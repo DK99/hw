@@ -19,6 +19,7 @@
 #include "HWApplication.h"
 #include <QFileOpenEvent>
 #include <QEvent>
+#include <QUrlQuery>
 
 #include "MessageDialog.h"
 
@@ -71,14 +72,18 @@ void HWApplication::fakeEvent()
 bool HWApplication::event(QEvent *event)
 {
     QFileOpenEvent *openEvent;
-    QString scheme, path, address;
+    QString scheme, path, address, room, password;
+    QUrlQuery query;
 
     if (event->type() == QEvent::FileOpen) {
         openEvent = (QFileOpenEvent *)event;
         scheme = openEvent->url().scheme();
         path = openEvent->url().path();
         address = openEvent->url().host();
-
+        query = QUrlQuery(openEvent->url());
+        room = query.queryItemValue(QStringLiteral("room"));
+        password = query.queryItemValue(QStringLiteral("password"));
+        
         QFile file(path);
         if (scheme == "file" && file.exists()) {
             form->PlayDemoQuick(path);
@@ -87,7 +92,7 @@ bool HWApplication::event(QEvent *event)
             int port = openEvent->url().port(NETGAME_DEFAULT_PORT);
             if (address == "")
                 address = NETGAME_DEFAULT_SERVER;
-            form->NetConnectQuick(address, (quint16) port);
+            form->NetConnectQuick(address, (quint16) port, room, password);
             return true;
         } else {
             //: Here, “scheme” refers to the scheme of a Uniform Resource Identifier”

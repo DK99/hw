@@ -65,7 +65,7 @@ HWTeam::HWTeam(const QStringList& strLst) :
     , m_isMissionTeam(false)
 {
     // net teams are configured from QStringList
-    if(strLst.size() != 23) throw HWTeamConstructException();
+    if(strLst.size() != 15) throw HWTeamConstructException();
     m_name = strLst[0];
     m_grave = strLst[1];
     m_fort = strLst[2];
