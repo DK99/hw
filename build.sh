@@ -1,5 +1,5 @@
 #!/bin/bash
-HW_PATH=$(realpath `dirname "$0"`/hw)
+HW_PATH=$PWD
 mkdir $HW_PATH/build
 rm -rf $HW_PATH/dist
 mkdir $HW_PATH/dist
