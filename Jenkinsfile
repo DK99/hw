@@ -9,16 +9,16 @@ pipeline {
 
     agent none
 	stages {
-        // stage('Build Windows') {
-        //     agent {
-        //         label 'windows'
-        //     }
-        //     steps {
-        //         script {
-        //             bat("build.bat")
-        //         }
-        //     }
-        // }
+        stage('Build Windows') {
+            agent {
+                label 'windows'
+            }
+            steps {
+                script {
+                    bat("build.bat")
+                }
+            }
+        }
 
         stage('Build Linux') {
             agent {
