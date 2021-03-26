@@ -20,14 +20,14 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            when {
-                environment name: 'DEPLOY', value: 'true'
-            }
-            steps {
-                // sh label: '', returnStatus: true, script: '''cp jenkinsexample ~
-                // cp test/testPro ~'''
-            }
-        }
+        // stage('Deploy') {
+        //     when {
+        //         environment name: 'DEPLOY', value: 'true'
+        //     }
+        //     steps {
+        //         // sh label: '', returnStatus: true, script: '''cp jenkinsexample ~
+        //         // cp test/testPro ~'''
+        //     }
+        // }
 	}
 }
