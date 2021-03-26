@@ -1,6 +1,8 @@
 #!/bin/bash
 HW_PATH=$PWD
+rm -rf $HW_PATH/build
 mkdir $HW_PATH/build
+
 rm -rf $HW_PATH/dist
 mkdir $HW_PATH/dist
 cd $HW_PATH/build
@@ -13,4 +15,4 @@ mv usr/local/lib/* .
 rm -rf usr
 rm -rf home
 cd $HW_PATH
-tar --zstd -cf dist.tar.zst dist/
+zip dist.zip dist
