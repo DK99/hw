@@ -296,7 +296,9 @@ impl HwServer {
         password: Option<String>,
     ) -> Result<(&HwClient, &HwRoom), CreateRoomError> {
         use CreateRoomError::*;
-        if utils::is_name_illegal(&name) {
+        if !self.clients[creator_id].is_admin() {
+            Err(InvalidName)
+        } else if utils::is_name_illegal(&name) {
             Err(InvalidName)
         } else if self.has_room(&name) {
             Err(AlreadyExists)
