@@ -5,6 +5,8 @@ services:
     container_name: hedgewars-server
     ports: 
       - "46631:46631"
+    networks:
+      - ctf_web
   hedgewars-db:
     ports:
       - "3306:3306"
@@ -17,3 +19,9 @@ services:
       - MYSQL_PASSWORD=2yB9OnKbYpYxBrQeguJOV4PJIrRafV
     volumes: 
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - ctf_web
+
+networks:
+  ctf_web:
+    external: true

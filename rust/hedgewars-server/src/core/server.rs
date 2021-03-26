@@ -904,7 +904,6 @@ impl<'a> HwRoomControl<'a> {
             if !client.is_master() {
                 Err(NotMaster)
             } else {
-                team.hedgehogs_number = 0;
                 team.color = color;
                 self.server.clients[owner].clan = Some(color);
                 Ok(())
