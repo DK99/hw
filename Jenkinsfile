@@ -9,16 +9,16 @@ pipeline {
 
     agent none
 	stages {
-        stage('Build Windows') {
-            agent {
-                label 'windows'
-            }
-            steps {
-                script {
-                    bat("build.bat")
-                }
-            }
-        }
+        // stage('Build Windows') {
+        //     agent {
+        //         label 'windows'
+        //     }
+        //     steps {
+        //         script {
+        //             bat("build.bat")
+        //         }
+        //     }
+        // }
 
         stage('Build Linux') {
             agent {
@@ -31,17 +31,20 @@ pipeline {
             }
         }
 
-        // stage('Deploy Linux') {
-        //     agent {
-        //         label 'linux'
-        //     }
-        //     when {
-        //         branch 'master'
-        //     }
-        //     steps {
-        //         // sh label: '', returnStatus: true, script: '''cp jenkinsexample ~
-        //         // cp test/testPro ~'''
-        //     }
-        // }
+        stage('Deploy Linux') {
+            agent {
+                label 'linux'
+            }
+            when {
+                branch 'master'
+            }
+            steps {
+                withCredentials([string(credentialsId: 'allesctf-github-accesstoken', variable: 'GITHUB_TOKEN')]) {
+                    script {
+                        sh("chmod +x release.sh && ./release.sh")
+                    }
+                }
+            }
+        }
 	}
 }
