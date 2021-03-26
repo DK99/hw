@@ -1,8 +1,4 @@
 pipeline {
-    agent {
-        label 'linux'
-    }
-
     options {
         timeout(time: 10, unit: 'MINUTES')
     }
@@ -11,8 +7,12 @@ pipeline {
         githubPush()
     }
 
+    agent none
 	stages {
-        stage('Build') {
+        stage('Build Linux') {
+            agent {
+                label 'linux'
+            }
             steps {
                 script {
                     sh("chmod +x build.sh && ./build.sh")
