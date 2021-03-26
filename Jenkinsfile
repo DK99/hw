@@ -9,17 +9,6 @@ pipeline {
 
     agent none
 	stages {
-        stage('Build Linux') {
-            agent {
-                label 'linux'
-            }
-            steps {
-                script {
-                    sh("chmod +x build.sh && ./build.sh")
-                }
-            }
-        }
-
         stage('Build Windows') {
             agent {
                 label 'windows'
@@ -27,6 +16,17 @@ pipeline {
             steps {
                 script {
                     bat("build.bat")
+                }
+            }
+        }
+
+        stage('Build Linux') {
+            agent {
+                label 'linux'
+            }
+            steps {
+                script {
+                    sh("chmod +x build.sh && ./build.sh")
                 }
             }
         }

@@ -15,4 +15,4 @@ mv usr/local/lib/* .
 rm -rf usr
 rm -rf home
 cd $HW_PATH
-zip dist.zip dist
+zip hedgewars.zip dist
