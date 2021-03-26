@@ -20,9 +20,23 @@ pipeline {
             }
         }
 
-        // stage('Deploy') {
+        stage('Build Windows') {
+            agent {
+                label 'windows'
+            }
+            steps {
+                script {
+                    bat("build.bat")
+                }
+            }
+        }
+
+        // stage('Deploy Linux') {
+        //     agent {
+        //         label 'linux'
+        //     }
         //     when {
-        //         environment name: 'DEPLOY', value: 'true'
+        //         branch 'master'
         //     }
         //     steps {
         //         // sh label: '', returnStatus: true, script: '''cp jenkinsexample ~
