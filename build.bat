@@ -8,4 +8,6 @@ nmake install
 copy F:\vcpkg\installed\x64-windows\bin\ogg.dll F:\dist
 copy F:\vcpkg\installed\x64-windows\bin\vorbis.dll F:\dist
 copy F:\vcpkg\installed\x64-windows\bin\vorbisfile.dll F:\dist
+
+cd F:\dist
 powershell Compress-Archive . dist.zip
