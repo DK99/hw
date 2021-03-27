@@ -7,4 +7,4 @@ echo "Creating a new release in github"
 F:\github-release.exe release --user allesctf --repo hw --tag allesctf_edition_windows --name allesctf_edition_windows
 
 echo "Uploading the artifacts into github"
-F:\github-release.exe upload --user allesctf --repo hw --tag allesctf_edition_windows --name "hedgewars_allesctf_edition_windows.zip" --file hedgewars.zip
+F:\github-release.exe upload --user allesctf --repo hw --tag allesctf_edition_windows --name "hedgewars_allesctf_edition_windows.zip" --file F:\dist\dist.zip
