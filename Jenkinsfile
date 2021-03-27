@@ -9,42 +9,66 @@ pipeline {
 
     agent none
 	stages {
-        stage('Build Windows') {
-            agent {
-                label 'windows'
-            }
-            steps {
-                script {
-                    bat("build.bat")
-                }
-            }
-        }
+        stage("Build and deploy Linux/Windows"){
+            parallel {
+                stage('Windows') {
+                    agent {
+                        label 'windows'
+                    }
 
-        stage('Build Linux') {
-            agent {
-                label 'linux'
-            }
-            steps {
-                script {
-                    sh("chmod +x build.sh && ./build.sh")
-                }
-            }
-        }
+                    stages {
+                        stage('Build Windows') {
+                            steps {
+                                script {
+                                    bat("build.bat")
+                                }
+                            }
+                        }
 
-        stage('Deploy Linux') {
-            agent {
-                label 'linux'
-            }
-            when {
-                branch 'master'
-            }
-            steps {
-                withCredentials([string(credentialsId: 'allesctf-github-accesstoken', variable: 'GITHUB_TOKEN')]) {
-                    script {
-                        sh("chmod +x release.sh && ./release.sh")
+                        stage('Deploy Windows') {
+                            when {
+                                branch 'master'
+                            }
+                            steps {
+                                withCredentials([string(credentialsId: 'allesctf-github-accesstoken', variable: 'GITHUB_TOKEN')]) {
+                                    script {
+                                        bat("release.bat")
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
+
+                stage('Linux') {
+                    agent {
+                        label 'linux'
+                    }
+
+                    stages {
+                        stage('Build Linux') {
+                            steps {
+                                script {
+                                    sh("chmod +x build.sh && ./build.sh")
+                                }
+                            }
+                        }
+
+                        stage('Deploy Linux') {
+                            when {
+                                branch 'master'
+                            }
+                            steps {
+                                withCredentials([string(credentialsId: 'allesctf-github-accesstoken', variable: 'GITHUB_TOKEN')]) {
+                                    script {
+                                        sh("chmod +x release.sh && ./release.sh")
+                                    }
+                                }
+                            }
+                        }
+                    }                 
+                }
             }
         }
-	}
+    }
 }
