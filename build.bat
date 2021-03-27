@@ -1,4 +1,4 @@
-F:\env.bat
+call F:\env.bat
 
 set
 
