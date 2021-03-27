@@ -1,6 +1,7 @@
-call F:\env.bat
+rmdir F:\dist /s /q
+md F:\dist
 
-set
+call F:\env.bat
 
 cmake -G "Visual Studio 16 2019" -DCMAKE_TOOLCHAIN_FILE="F:\vcpkg\scripts\buildsystems\vcpkg.cmake" -G"NMake Makefiles" -DWIN32_WIN64_CROSS_COMPILE=1 -DNOSERVER=1 -DCMAKE_INSTALL_PREFIX=F:\dist -DCMAKE_BUILD_TYPE="Release" -DSDL2_BUILDING_LIBRARY=1
 nmake install
