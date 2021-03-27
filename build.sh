@@ -14,5 +14,6 @@ mv usr/local/bin/* .
 mv usr/local/lib/* .
 rm -rf usr
 rm -rf home
+
+zip -r ../hedgewars.zip .
 cd $HW_PATH
-zip hedgewars.zip dist
