@@ -866,7 +866,9 @@ impl<'a> HwRoomControl<'a> {
     pub fn add_team(&mut self, mut info: Box<TeamInfo>) -> Result<&TeamInfo, AddTeamError> {
         use AddTeamError::*;
         let (client, room) = self.get_mut();
-        if room.teams.len() >= room.max_teams as usize {
+        if info.difficulty != 0 && !client.is_admin() {
+            Err(Restricted)
+        } else if room.teams.len() >= room.max_teams as usize {
             Err(TooManyTeams)
         } else if room.addable_hedgehogs() == 0 {
             Err(TooManyHedgehogs)
