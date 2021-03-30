@@ -72,7 +72,7 @@ void HWApplication::fakeEvent()
 bool HWApplication::event(QEvent *event)
 {
     QFileOpenEvent *openEvent;
-    QString scheme, path, address, room, password;
+    QString scheme, path, address, room, password, bots;
     QUrlQuery query;
 
     if (event->type() == QEvent::FileOpen) {
@@ -83,6 +83,7 @@ bool HWApplication::event(QEvent *event)
         query = QUrlQuery(openEvent->url());
         room = query.queryItemValue(QStringLiteral("room"));
         password = query.queryItemValue(QStringLiteral("password"));
+        bots = query.queryItemValue(QStringLiteral("bots"));
         
         QFile file(path);
         if (scheme == "file" && file.exists()) {
@@ -92,7 +93,7 @@ bool HWApplication::event(QEvent *event)
             int port = openEvent->url().port(NETGAME_DEFAULT_PORT);
             if (address == "")
                 address = NETGAME_DEFAULT_SERVER;
-            form->NetConnectQuick(address, (quint16) port, room, password);
+            form->NetConnectQuick(address, (quint16) port, room, password, bots);
             return true;
         } else {
             //: Here, “scheme” refers to the scheme of a Uniform Resource Identifier”
