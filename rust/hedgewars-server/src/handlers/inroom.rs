@@ -128,7 +128,7 @@ pub fn handle(
                     nick: client.nick.clone(),
                     msg,
                 }
-                .send_all()
+                .send_others()
                 .in_room(room_id),
             );
         }

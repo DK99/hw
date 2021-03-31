@@ -48,7 +48,7 @@ pub fn handle(
                     nick: server.client(client_id).nick.clone(),
                     msg,
                 }
-                .send_all()
+                .send_others()
                 .in_lobby()
                 .but_self(),
             );

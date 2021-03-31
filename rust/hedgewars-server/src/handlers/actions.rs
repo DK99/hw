@@ -69,6 +69,17 @@ impl PendingMessage {
         }
     }
 
+    pub fn send_others(message: HwServerMessage) -> PendingMessage {
+        let destination = Destination::ToAll {
+            group: DestinationGroup::All,
+            skip_self: true,
+        };
+        PendingMessage {
+            destination,
+            message,
+        }
+    }
+
     pub fn in_room(mut self, clients_room_id: RoomId) -> PendingMessage {
         if let Destination::ToAll { ref mut group, .. } = self.destination {
             *group = DestinationGroup::Room(clients_room_id)
@@ -113,6 +124,9 @@ impl HwServerMessage {
     }
     pub fn send_all(self) -> PendingMessage {
         PendingMessage::send_all(self)
+    }
+    pub fn send_others(self) -> PendingMessage {
+        PendingMessage::send_others(self)
     }
     pub fn send_to_destination(self, destination: Destination) -> PendingMessage {
         PendingMessage {
