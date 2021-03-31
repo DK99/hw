@@ -125,6 +125,7 @@ pub enum StartGameError {
     NotEnoughClans,
     NotReady,
     AlreadyInGame,
+    NotAllowed,
 }
 
 #[derive(Debug)]
@@ -599,6 +600,7 @@ impl<'a> HwRoomControl<'a> {
         client.room_id = None;
 
         let is_empty = room.players_number == 0;
+
         let is_fixed = room.is_fixed();
         let was_master = room.master_id == Some(client.id);
         let was_in_game = client.is_in_game();
@@ -636,7 +638,7 @@ impl<'a> HwRoomControl<'a> {
 
         if !is_fixed {
             if room.players_number == 0 {
-                self.is_room_removed = true
+                self.is_room_removed = true;
             } else if room.master_id == None {
                 let protocol_number = room.protocol_number;
                 let new_master_id = self.server.room_client_ids(self.room_id).next();
@@ -916,7 +918,7 @@ impl<'a> HwRoomControl<'a> {
         let (client, room) = self.get_mut();
         if room.is_fixed() {
             Err(RoomFixed)
-        } else if !client.is_master() {
+        } else if !client.is_master() && !client.is_admin() {
             Err(NotMaster)
         } else {
             let cfg = match cfg {

@@ -22,6 +22,9 @@ use tokio::net::TcpStream;
 use tokio::process::Command;
 use tokio::time::{sleep, Duration, Instant};
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+use std::sync::atomic::Ordering;
 
 pub mod platform {
     tonic::include_proto!("platform");
@@ -34,6 +37,7 @@ const REPLACE_USER: &str =
 const GET_LEGALIZED_NAME: &str =
     r"SELECT LEFT(name, LENGTH(name) - 2) FROM users WHERE uid = :id LIMIT 1";
 const REPLACE_MATCH: &str = r"REPLACE INTO matches(`nick`, `match`) VALUES (:nick, :match);";
+const DELETE_MATCH: &str = r"DELETE FROM matches WHERE `match` = :match;";
 
 lazy_static! {
     static ref MAPS: Vec<&'static str> = vec![
@@ -205,7 +209,14 @@ pub(crate) async fn listen_tasks(port: u16) -> Result<(), Box<dyn std::error::Er
 
     sleep(Duration::from_millis(5000)).await;
 
+    let mut task_handles: HashMap<String, tokio::task::JoinHandle<()>> = HashMap::new();
+    let mut task_started = HashMap::new();
+    let mut tasks_last_received: Vec<String> = Vec::new();
+
     while let Some(response) = grpc_stream.message().await? {
+        let mut tasks_delted = tasks_last_received.clone();
+        tasks_last_received = Vec::new();
+
         for task in &response.tasks {
             let pool = pool.clone();
             let task = task.clone();
@@ -214,23 +225,46 @@ pub(crate) async fn listen_tasks(port: u16) -> Result<(), Box<dyn std::error::Er
                 continue;
             }
 
-            info!("Inserting room: {}", task.name);
+            info!("Inserting room: {}", task.name.clone());
+            tasks_last_received.push(task.name.clone());
 
-            tokio::spawn(async move {
-                let res = send_to_hw_server(task, port, pool).await;
+            tasks_delted.retain(|name| name != &task.name.clone());
+
+            let match_started = task_started.entry(task.name.clone())
+                .or_insert(Arc::new(AtomicBool::new(false))).clone();
+            if !match_started.load(Ordering::Relaxed) {
+                if let Some(task_handle) = task_handles.remove(&task.name) {
+                    task_handle.abort();
+                }
+            }
+
+            let task_name = task.name.clone();
+            let task_handle = tokio::spawn(async move {
+                let res = send_to_hw_server(task, port, pool, match_started).await;
                 if let Err(err) = res {
                     println!("worker failed: {:?}", err);
                 }
             });
+            task_handles.insert(task_name, task_handle);
 
             sleep(Duration::from_millis(500)).await;
+        }
+
+        for task_name in tasks_delted {
+            let match_started = task_started.entry(task_name.clone())
+                .or_insert(Arc::new(AtomicBool::new(false))).clone();
+            if !match_started.load(Ordering::Relaxed) {
+                if let Some(task_handle) = task_handles.remove(&task_name) {
+                    task_handle.abort();
+                }
+            }
         }
     }
 
     Ok(())
 }
 
-async fn send_to_hw_server(task: Task, port: u16, pool: Pool) -> Result<(), std::io::Error> {
+async fn send_to_hw_server(task: Task, port: u16, pool: Pool, match_started: Arc<AtomicBool>) -> Result<(), std::io::Error> {
     let password: String = thread_rng()
         .sample_iter(&Alphanumeric)
         .take(16)
@@ -296,17 +330,16 @@ async fn send_to_hw_server(task: Task, port: u16, pool: Pool) -> Result<(), std:
     tokio::pin!(sleep_scheduled_time);
     tokio::pin!(sleep_force_start);
 
-    let mut started = false;
-
     'tcp_loop: loop {
         tokio::select! {
             _ = &mut sleep_scheduled_time, if !sleep_scheduled_time.is_elapsed() => {
-                if started { continue; }
+                if match_started.load(Ordering::Relaxed) { continue; }
                 send_msg!(HwProtocolMessage::Chat(format!("Waiting until either all players are ready or 5 more minutes...")));
             }
             _ = &mut sleep_force_start, if !sleep_force_start.is_elapsed() => {
-                if started { continue; }
-                started = true; 
+                if match_started.load(Ordering::Relaxed) { continue; }
+                send_msg!(HwProtocolMessage::StartGame);
+                match_started.store(true, Ordering::Relaxed)
             }
             line = lines.next_line() => {
                 let mut message = vec![line?.unwrap()];
@@ -342,8 +375,23 @@ async fn send_to_hw_server(task: Task, port: u16, pool: Pool) -> Result<(), std:
                         send_msg!(HwProtocolMessage::Pong);
                     }
                     ["LOBBY:JOINED", nicks] => {
+                        
+                    }
+                    ["ROOMS", infos@..] => {
                         if !room_created {
-                            send_msg!(HwProtocolMessage::CreateRoom(task.name.clone(), None));
+                            let name: &str = &task.name.clone();
+                            if infos.contains(&name) {
+                                send_msg!(HwProtocolMessage::JoinRoom(task.name.clone(), None));
+                            } else {
+                                send_msg!(HwProtocolMessage::CreateRoom(task.name.clone(), None));
+                            }
+
+                            pool.first_exec(
+                                DELETE_MATCH,
+                                params! {
+                                    "match" => &task.name.clone(),
+                                },
+                            );
                             for team in teams.clone() {
                                 let _ = pool.first_exec(
                                     REPLACE_MATCH,
@@ -357,84 +405,85 @@ async fn send_to_hw_server(task: Task, port: u16, pool: Pool) -> Result<(), std:
                             room_created = true;
                         }
                     }
-                    ["ROOM", "ADD", flags, name, ..] => {
-                        if name.to_string() != task.name {
-                            continue 'tcp_loop;
+                    ["ROOM", "ADD", flags, name, ..] => {}
+                    ["JOINED", nicks@..] => {
+                        let name: &str = &username.clone();
+                        if nicks.contains(&name) {
+                            send_msg!(HwProtocolMessage::Cfg(GameCfg::Ammo("Default".into(), Some("939192942219912103223511100120000000021110010101111100010000040504054160065554655446477657666666615551010111541111111070000000000000020550000004000700400000000022000000060002000000131111031211111112311411111111111111121111111111111111111110".into()))));
+                            send_msg!(HwProtocolMessage::Cfg(GameCfg::Scheme(
+                                "Default".into(),
+                                vec![
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "true".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "true".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "false".into(),
+                                    "100".into(),
+                                    "45".into(),
+                                    "100".into(),
+                                    "15".into(),
+                                    "5".into(),
+                                    "3".into(),
+                                    "4".into(),
+                                    "0".into(),
+                                    "2".into(),
+                                    "0".into(),
+                                    "0".into(),
+                                    "35".into(),
+                                    "25".into(),
+                                    "47".into(),
+                                    "5".into(),
+                                    "100".into(),
+                                    "100".into(),
+                                    "0".into(),
+                                    "!".into()
+                                ]
+                            )));
+                            send_msg!(HwProtocolMessage::Cfg(GameCfg::Script("Normal".into())));
+    
+                            let map = get_random_map();
+                            send_msg!(HwProtocolMessage::Cfg(GameCfg::Theme(
+                                THEME_MAP[&map].to_string()
+                            )));
+                            send_msg!(HwProtocolMessage::Cfg(GameCfg::MapType(map)));
+    
+                            let seed: String = thread_rng()
+                                .sample_iter(&Alphanumeric)
+                                .take(32)
+                                .map(char::from)
+                                .collect();
+    
+                            send_msg!(HwProtocolMessage::Cfg(GameCfg::Seed(seed)));
                         }
 
-                        send_msg!(HwProtocolMessage::Cfg(GameCfg::Ammo("Default".into(), Some("939192942219912103223511100120000000021110010101111100010000040504054160065554655446477657666666615551010111541111111070000000000000020550000004000700400000000022000000060002000000131111031211111112311411111111111111121111111111111111111110".into()))));
-                        send_msg!(HwProtocolMessage::Cfg(GameCfg::Scheme(
-                            "Default".into(),
-                            vec![
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "true".into(),
-                                "false".into(),
-                                "false".into(),
-                                "true".into(),
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "false".into(),
-                                "100".into(),
-                                "45".into(),
-                                "100".into(),
-                                "15".into(),
-                                "5".into(),
-                                "3".into(),
-                                "4".into(),
-                                "0".into(),
-                                "2".into(),
-                                "0".into(),
-                                "0".into(),
-                                "35".into(),
-                                "25".into(),
-                                "47".into(),
-                                "5".into(),
-                                "100".into(),
-                                "100".into(),
-                                "0".into(),
-                                "!".into()
-                            ]
-                        )));
-                        send_msg!(HwProtocolMessage::Cfg(GameCfg::Script("Normal".into())));
-
-                        let map = get_random_map();
-                        send_msg!(HwProtocolMessage::Cfg(GameCfg::Theme(
-                            THEME_MAP[&map].to_string()
-                        )));
-                        send_msg!(HwProtocolMessage::Cfg(GameCfg::MapType(map)));
-
-                        let seed: String = thread_rng()
-                            .sample_iter(&Alphanumeric)
-                            .take(32)
-                            .map(char::from)
-                            .collect();
-
-                        send_msg!(HwProtocolMessage::Cfg(GameCfg::Seed(seed)));
-                    }
-                    ["JOINED", nick] => {
                         send_msg!(HwProtocolMessage::Chat(
                             task.description.clone(),
                         ));
 
-                        if is_participant(nick.to_string(), teams.clone()) {
-                            users_map.insert(nick.to_string(), false);
+                        for nick in nicks {
+                            if is_participant(nick.to_string(), teams.clone()) {
+                                users_map.insert(nick.to_string(), false);
+                            }
                         }
                     }
                     ["CLIENT_FLAGS", flags, nick] => {
@@ -442,7 +491,7 @@ async fn send_to_hw_server(task: Task, port: u16, pool: Pool) -> Result<(), std:
                             users_map.insert(nick.to_string(), flags.starts_with("+"));
 
                             if all_ready(teams.clone(), users_map.clone()) && task.teams.len() > 0 {
-                                started = true;
+                                match_started.store(true, Ordering::Relaxed);
                                 send_msg!(HwProtocolMessage::StartGame);
                             }
                         }
@@ -517,7 +566,7 @@ async fn send_to_hw_server(task: Task, port: u16, pool: Pool) -> Result<(), std:
 
 
                         if all_ready(teams.clone(), users_map.clone()) {
-                            started = true;
+                            match_started.store(true, Ordering::Relaxed);
                             send_msg!(HwProtocolMessage::StartGame);
                         }
                     }

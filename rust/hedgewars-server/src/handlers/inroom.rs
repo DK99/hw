@@ -364,7 +364,13 @@ pub fn handle(
             }
         }
         StartGame => {
-            let result = room_control.start_game();
+            let result;
+            if client.is_admin() || client.is_master() {
+                result = room_control.start_game();
+            } else {
+                result = Err(StartGameError::NotAllowed);
+            }
+             
             super::common::get_start_game_data(room_control.server(), room_id, result, response);
         }
         EngineMessage(em) => {
@@ -471,6 +477,25 @@ pub fn handle(
             Err(ChangeMasterError::ClientNotInRoom) => {
                 response.warn("The player is not in your room.")
             }
+        },
+        Kick(nick) => {
+            if client.is_admin() || client.is_master() {
+                if let Some(kicked_client) = room_control.server().find_client(&nick) {
+                    let kicked_id = kicked_client.id;
+                    if let Some(mut room_control) = room_control.change_client(kicked_id) {
+                        response.add(Kicked.send(kicked_id));
+                        let result = room_control.leave_room();
+                        super::common::get_room_leave_result(
+                            room_control.server(),
+                            room_control.room(),
+                            "kicked",
+                            result,
+                            response,
+                        );
+                    }
+                }
+            }
+            
         },
         _ => warn!("Unimplemented!"),
     }

@@ -343,7 +343,8 @@ pub fn remove_client(server: &mut HwServer, response: &mut Response, msg: String
     if let Some(mut room_control) = server.get_room_control(client_id) {
         let room_id = room_control.room().id;
         let result = room_control.leave_room();
-        get_room_leave_result(server, server.room(room_id), &msg, result, response);
+        get_room_leave_result(room_control.server(), room_control.room(), &msg, result, response);
+        room_control.cleanup_room();
     }
 
     server.remove_client(client_id);
@@ -608,6 +609,7 @@ pub fn get_start_game_data(
         }
         Err(StartGameError::NotReady) => response.warn("Not all players are ready"),
         Err(StartGameError::AlreadyInGame) => response.warn("The game is already in progress"),
+        Err(StartGameError::NotAllowed) => response.warn("Only the room owner or an admin can start a game!")
     }
 }
 
