@@ -13,6 +13,10 @@ use rand::{thread_rng, Rng, RngCore};
 use regex::Regex;
 use std::collections::HashMap;
 use std::net::SocketAddr;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::io::AsyncBufReadExt;
 use tokio::io::AsyncWrite;
 use tokio::io::AsyncWriteExt;
@@ -21,10 +25,6 @@ use tokio::io::BufWriter;
 use tokio::net::TcpStream;
 use tokio::process::Command;
 use tokio::time::{sleep, Duration, Instant};
-use std::time::{SystemTime, UNIX_EPOCH};
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
-use std::sync::atomic::Ordering;
 
 pub mod platform {
     tonic::include_proto!("platform");
@@ -225,14 +225,17 @@ pub(crate) async fn listen_tasks(port: u16) -> Result<(), Box<dyn std::error::Er
                 continue;
             }
 
-            info!("Inserting room: {}", task.name.clone());
             tasks_last_received.push(task.name.clone());
 
             tasks_delted.retain(|name| name != &task.name.clone());
 
-            let match_started = task_started.entry(task.name.clone())
-                .or_insert(Arc::new(AtomicBool::new(false))).clone();
+            let match_started = task_started
+                .entry(task.name.clone())
+                .or_insert(Arc::new(AtomicBool::new(false)))
+                .clone();
             if !match_started.load(Ordering::Relaxed) {
+                println!("Creating room: {}", task.name.clone());
+
                 if let Some(task_handle) = task_handles.remove(&task.name) {
                     task_handle.abort();
                 }
@@ -251,9 +254,13 @@ pub(crate) async fn listen_tasks(port: u16) -> Result<(), Box<dyn std::error::Er
         }
 
         for task_name in tasks_delted {
-            let match_started = task_started.entry(task_name.clone())
-                .or_insert(Arc::new(AtomicBool::new(false))).clone();
+            let match_started = task_started
+                .entry(task_name.clone())
+                .or_insert(Arc::new(AtomicBool::new(false)))
+                .clone();
             if !match_started.load(Ordering::Relaxed) {
+                println!("Removing room: {}", task_name.clone());
+
                 if let Some(task_handle) = task_handles.remove(&task_name) {
                     task_handle.abort();
                 }
@@ -264,7 +271,12 @@ pub(crate) async fn listen_tasks(port: u16) -> Result<(), Box<dyn std::error::Er
     Ok(())
 }
 
-async fn send_to_hw_server(task: Task, port: u16, pool: Pool, match_started: Arc<AtomicBool>) -> Result<(), std::io::Error> {
+async fn send_to_hw_server(
+    task: Task,
+    port: u16,
+    pool: Pool,
+    match_started: Arc<AtomicBool>,
+) -> Result<(), std::io::Error> {
     let password: String = thread_rng()
         .sample_iter(&Alphanumeric)
         .take(16)
@@ -283,10 +295,15 @@ async fn send_to_hw_server(task: Task, port: u16, pool: Pool, match_started: Arc
     );
 
     let schedule_time = UNIX_EPOCH + Duration::from_secs(task.scheduled);
-    let delay = schedule_time.duration_since(SystemTime::now()).unwrap_or_else(|err| {
-        eprintln!("WEEEWOOOWEEEWOOO time stuff {:?} for match {}", err, task.name);
-        Duration::from_secs(1)
-    });
+    let delay = schedule_time
+        .duration_since(SystemTime::now())
+        .unwrap_or_else(|err| {
+            eprintln!(
+                "WEEEWOOOWEEEWOOO time stuff {:?} for match {}",
+                err, task.name
+            );
+            Duration::from_secs(1)
+        });
     let start = Instant::now() + delay;
 
     let mut hw_stream = TcpStream::connect(format!("localhost:{}", port)).await?;
@@ -326,7 +343,7 @@ async fn send_to_hw_server(task: Task, port: u16, pool: Pool, match_started: Arc
     }
 
     let sleep_scheduled_time = tokio::time::sleep_until(start);
-    let sleep_force_start = tokio::time::sleep_until(start + Duration::from_secs(5*60));
+    let sleep_force_start = tokio::time::sleep_until(start + Duration::from_secs(5 * 60));
     tokio::pin!(sleep_scheduled_time);
     tokio::pin!(sleep_force_start);
 
@@ -375,7 +392,7 @@ async fn send_to_hw_server(task: Task, port: u16, pool: Pool, match_started: Arc
                         send_msg!(HwProtocolMessage::Pong);
                     }
                     ["LOBBY:JOINED", nicks] => {
-                        
+
                     }
                     ["ROOMS", infos@..] => {
                         if !room_created {
@@ -406,7 +423,7 @@ async fn send_to_hw_server(task: Task, port: u16, pool: Pool, match_started: Arc
                         }
                     }
                     ["ROOM", "ADD", flags, name, ..] => {}
-                    ["JOINED", nicks@..] => {
+                    ["JOINED", nicks @ ..] => {
                         let name: &str = &username.clone();
                         if nicks.contains(&name) {
                             send_msg!(HwProtocolMessage::Cfg(GameCfg::Ammo("Default".into(), Some("939192942219912103223511100120000000021110010101111100010000040504054160065554655446477657666666615551010111541111111070000000000000020550000004000700400000000022000000060002000000131111031211111112311411111111111111121111111111111111111110".into()))));
@@ -460,19 +477,19 @@ async fn send_to_hw_server(task: Task, port: u16, pool: Pool, match_started: Arc
                                 ]
                             )));
                             send_msg!(HwProtocolMessage::Cfg(GameCfg::Script("Normal".into())));
-    
+
                             let map = get_random_map();
                             send_msg!(HwProtocolMessage::Cfg(GameCfg::Theme(
                                 THEME_MAP[&map].to_string()
                             )));
                             send_msg!(HwProtocolMessage::Cfg(GameCfg::MapType(map)));
-    
+
                             let seed: String = thread_rng()
                                 .sample_iter(&Alphanumeric)
                                 .take(32)
                                 .map(char::from)
                                 .collect();
-    
+
                             send_msg!(HwProtocolMessage::Cfg(GameCfg::Seed(seed)));
                         }
 
@@ -699,6 +716,9 @@ async fn send_to_hw_server(task: Task, port: u16, pool: Pool, match_started: Arc
                             _ => {}
                         }
                     }
+                    ["ROUND_FINISHED"] => {
+                        break 'tcp_loop;
+                    }
                     message => {
                         info!("(Internal Client) unknown message: {}", message.join(" "));
                         unknown = true;
@@ -711,7 +731,6 @@ async fn send_to_hw_server(task: Task, port: u16, pool: Pool, match_started: Arc
             }
         }
     }
-
 
     Ok(())
 }

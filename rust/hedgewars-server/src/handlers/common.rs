@@ -624,6 +624,7 @@ pub fn get_end_game_result(
 
     get_room_update(None, room, room_master, response);
     response.add(RoundFinished.send_all().in_room(room_id));
+    
 
     response.extend(
         result
