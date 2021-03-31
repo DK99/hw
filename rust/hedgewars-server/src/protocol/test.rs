@@ -123,10 +123,6 @@ impl Arbitrary for TeamInfo {
                     hog(2),
                     hog(3),
                     hog(4),
-                    hog(5),
-                    hog(6),
-                    hog(7),
-                    hog(8),
                 ];
                 TeamInfo {
                     owner: String::new(),

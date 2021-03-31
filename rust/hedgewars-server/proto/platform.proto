@@ -299,6 +299,11 @@ enum ProfileType {
     Bot = 2;
 }
 
+message Credential {
+    string username = 1;
+    string password = 2;
+}
+
 // {"id":"18419","name":"ALLES!","country":"DE"}
 message Profile {
     // Team display name
@@ -312,6 +317,7 @@ message Profile {
     bool admin = 5;
     // Discord avatar ID
     string avatar = 6;
+    repeated Credential credentials = 7;
 }
 
 message SubmitFlagRequest {
@@ -591,6 +597,7 @@ message Task {
     string author = 4;
     // Task description (text/markdown)
     string description = 5;
+
     // Flag hash
     // TODO: this could/should be bytes?
     string flag = 6;
@@ -652,6 +659,11 @@ message Task {
         repeated string networkPolicies = 3;
     }
     Deployment deployment = 20;
+
+    
+    string room_code = 21;
+    uint64 scheduled = 22;
+    repeated string teams = 23;
 }
 
 // State represents the (visible) game state after a given transaction has occurred.

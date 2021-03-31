@@ -148,7 +148,7 @@ pub enum HwServerMessage {
     Info(Vec<String>),
     ServerMessage(String),
     ServerVars(Vec<String>),
-    Notice(String),
+    Notice(u8),
     Warning(String),
     Error(String),
     Unreachable,
@@ -261,7 +261,7 @@ macro_rules! msg {
     };
 }
 
-#[cfg(test)]
+// #[cfg(test)]
 macro_rules! several {
     [$part: expr] => { once($part) };
     [$part: expr, $($other: expr),*] => { once($part).chain(several![$($other),*]) };
@@ -272,7 +272,7 @@ impl HwProtocolMessage {
      *
      * This is the inverse of the `message` parser.
      */
-    #[cfg(test)]
+    // #[cfg(test)]
     pub(crate) fn to_raw_protocol(&self) -> String {
         use self::HwProtocolMessage::*;
         match self {
@@ -362,7 +362,6 @@ impl HwProtocolMessage {
             Delete(name) => msg!["CMD", format!("DELETE {}", name)],
             SaveRoom(name) => msg!["CMD", format!("SAVEROOM {}", name)],
             LoadRoom(name) => msg!["CMD", format!("LOADROOM {}", name)],
-            _ => panic!("Protocol message not yet implemented"),
         }
     }
 }

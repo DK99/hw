@@ -1,5 +1,5 @@
 #[cfg(feature = "official-server")]
-mod database;
+pub mod database;
 pub mod demo;
 mod haskell;
 #[cfg(feature = "official-server")]

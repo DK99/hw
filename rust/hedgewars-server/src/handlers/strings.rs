@@ -37,3 +37,6 @@ pub const TOO_MANY_TEAMS: &str = "Too many teams!";
 pub const USER_OFFLINE: &str = "Player is not online.";
 pub const VARIABLE_UPDATED: &str = "Server variable has been updated.";
 pub const INCOMPATIBLE_ROOM_PROTOCOL: &str = "Room version incompatible to your Hedgewars version!";
+pub const WRONG_MATCH: &str = "You are not allowed to add teams to a match you are not playing at";
+pub const ADMIN_BOT_RESTRICTION: &str = "Only admins are allowed to add bots!";
+pub const ONLY_ONE_TEAM_ALLOWED: &str = "You are only allowed to add one team to the match!";

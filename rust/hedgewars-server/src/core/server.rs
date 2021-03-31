@@ -60,6 +60,8 @@ pub enum AddTeamError {
     TooManyHedgehogs,
     TeamAlreadyExists,
     Restricted,
+    AdminBot,
+    OnlyOneTeamAllowed,
 }
 
 #[derive(Debug)]
@@ -831,24 +833,14 @@ impl<'a> HwRoomControl<'a> {
         use SetHedgehogsError::*;
         let (client, room) = self.get_mut();
         let addable_hedgehogs = room.addable_hedgehogs();
-        
-        let team_color = if let Some((_, team)) = room.find_team_and_owner_mut(|t| t.name == team_name) {
-            team.color     
-        } else {
-            return Err(NoTeam)
-        };
-
-        let clan_hedges = room.clan_hedge_count(team_color);
-
         if let Some((_, team)) = room.find_team_and_owner_mut(|t| t.name == team_name) {
-            let max_hedgehogs = min(min(min(
+            let max_hedgehogs = min(
                 super::room::MAX_HEDGEHOGS_IN_ROOM,
                 addable_hedgehogs + team.hedgehogs_number,
-            ), MAX_HEDGEHOGS_PER_TEAM), MAX_HEDGEHOGS_PER_CLAN - (clan_hedges - team.hedgehogs_number));
+            );
             if !client.is_master() {
                 Err(NotMaster)
             } else if !(1..=max_hedgehogs).contains(&number) {
-                team.hedgehogs_number = max_hedgehogs;
                 Err(InvalidNumber(team.hedgehogs_number))
             } else {
                 team.hedgehogs_number = number;
@@ -867,7 +859,9 @@ impl<'a> HwRoomControl<'a> {
         use AddTeamError::*;
         let (client, room) = self.get_mut();
         if info.difficulty != 0 && !client.is_admin() {
-            Err(Restricted)
+            Err(AdminBot)
+        } else if client.teams_in_game != 0 && !client.is_admin()  {
+            Err(OnlyOneTeamAllowed)
         } else if room.teams.len() >= room.max_teams as usize {
             Err(TooManyTeams)
         } else if room.addable_hedgehogs() == 0 {

@@ -135,6 +135,27 @@ impl IoThread {
                         };
                         IoResult::LoadRoom(room_id, result)
                     }
+
+                    IoTask::AddTeam {
+                        team_info,
+                        room_name,
+                        owner,
+                        is_admin
+                    } => {
+                        match db.get_match(
+                            team_info.clone(),
+                            &room_name,
+                            &owner,
+                            &is_admin,
+                        ) {
+                            Ok(can_add) => IoResult::Team(team_info.clone(), can_add),
+                            Err(e) => {
+                                warn!("Unable to get team names for match {}: {}", room_name, e);
+                                IoResult::Team(team_info.clone(), false)
+                            }
+                        }
+                    }
+
                 };
                 io_tx.send((request_id, response));
             }

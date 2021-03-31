@@ -205,36 +205,17 @@ pub fn handle(
             }
         }
         AddTeam(info) => {
-            use crate::core::server::AddTeamError;
-            match room_control.add_team(info) {
-                Ok(team) => {
-                    response.add(TeamAccepted(team.name.clone()).send_self());
-                    response.add(
-                        TeamAdd(team.to_protocol())
-                            .send_all()
-                            .in_room(room_id)
-                            .but_self(),
-                    );
-                    response.add(
-                        TeamColor(team.name.clone(), team.color)
-                            .send_all()
-                            .in_room(room_id),
-                    );
-                    response.add(
-                        HedgehogsNumber(team.name.clone(), team.hedgehogs_number)
-                            .send_all()
-                            .in_room(room_id),
-                    );
+            let room_name = room_control.room().name.clone();
+            let team_info = info.clone();
+            let owner = client.nick.clone();
+            let is_admin = client.is_admin();
 
-                    let room = room_control.room();
-                    let room_master = room.master_id.map(|id| room_control.server().client(id));
-                    super::common::get_room_update(None, room, room_master, response);
-                }
-                Err(AddTeamError::TooManyTeams) => response.warn(TOO_MANY_TEAMS),
-                Err(AddTeamError::TooManyHedgehogs) => response.warn(TOO_MANY_HEDGEHOGS),
-                Err(AddTeamError::TeamAlreadyExists) => response.warn(TEAM_EXISTS),
-                Err(AddTeamError::Restricted) => response.warn(TEAM_ADD_RESTRICTED),
-            }
+            response.request_io(super::IoTask::AddTeam {
+                team_info,
+                room_name,
+                owner,
+                is_admin,
+            });
         }
         RemoveTeam(name) => {
             use crate::core::server::RemoveTeamError;

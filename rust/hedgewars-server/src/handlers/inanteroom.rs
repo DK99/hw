@@ -38,7 +38,7 @@ where
 
     if has_nick_clash {
         client.nick = None;
-        response.add(Notice("NickAlreadyInUse".to_string()).send_self());
+        response.add(Notice(0).send_self());
         LoginResult::Unchanged
     } else {
         #[cfg(feature = "official-server")]

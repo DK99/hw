@@ -10,19 +10,10 @@ use self::{
     inanteroom::LoginResult,
     strings::*,
 };
-use crate::{
-    core::{
-        anteroom::HwAnteroom,
-        room::RoomSave,
-        server::HwServer,
-        types::{ClientId, GameCfg, Replay, RoomId, TeamInfo},
-    },
-    protocol::messages::{
+use crate::{core::{anteroom::HwAnteroom, room::{HwRoom, RoomSave}, server::HwServer, types::{ClientId, GameCfg, Replay, RoomId, TeamInfo}}, protocol::messages::{
         global_chat, server_chat, HwProtocolMessage, HwProtocolMessage::EngineMessage,
         HwServerMessage, HwServerMessage::*,
-    },
-    utils,
-};
+    }, utils};
 use base64::encode;
 use log::*;
 use rand::{thread_rng, RngCore};
@@ -131,6 +122,12 @@ pub enum IoTask {
         room_id: RoomId,
         filename: String,
     },
+    AddTeam {
+        team_info: Box<TeamInfo>,
+        room_name: String,
+        owner: String,
+        is_admin: bool,
+    }
 }
 
 #[derive(Debug)]
@@ -141,6 +138,7 @@ pub enum IoResult {
     Replay(Option<Replay>),
     SaveRoom(RoomId, bool),
     LoadRoom(RoomId, Option<String>),
+    Team(Box<TeamInfo>, bool),
 }
 
 pub struct Response {
@@ -489,6 +487,50 @@ pub fn handle_io_result(
         }
         IoResult::LoadRoom(_, None) => {
             response.warn(ROOM_CONFIG_LOAD_FAILED);
+        }
+        IoResult::Team(_, false) => {
+            response.warn(WRONG_MATCH);
+        }
+        IoResult::Team(info, true) => {
+            use crate::core::server::AddTeamError;
+
+            if let Some(mut room_control) = state.server.get_room_control(response.client_id) {
+                match room_control.add_team(info) {
+                    Ok(t) => {
+                        let team = t.clone();
+
+                        let room = room_control.room();
+                        response.add(TeamAccepted(team.name.clone()).send_self());
+
+
+                        response.add(
+                            TeamAdd(team.to_protocol())
+                                .send_all()
+                                .in_room(room.id)
+                                .but_self(),
+                        );
+                        response.add(
+                            TeamColor(team.name.clone(), team.color)
+                                .send_all()
+                                .in_room(room.id),
+                        );
+                        response.add(
+                            HedgehogsNumber(team.name.clone(), team.hedgehogs_number)
+                                .send_all()
+                                .in_room(room.id),
+                        );
+    
+                        let room_master = room.master_id.map(|id| room_control.server().client(id));
+                        common::get_room_update(None, room, room_master, response); 
+                    }
+                    Err(AddTeamError::TooManyTeams) => response.warn(TOO_MANY_TEAMS),
+                    Err(AddTeamError::TooManyHedgehogs) => response.warn(TOO_MANY_HEDGEHOGS),
+                    Err(AddTeamError::TeamAlreadyExists) => response.warn(TEAM_EXISTS),
+                    Err(AddTeamError::Restricted) => response.warn(TEAM_ADD_RESTRICTED),
+                    Err(AddTeamError::AdminBot) => response.warn(ADMIN_BOT_RESTRICTION),
+                    Err(AddTeamError::OnlyOneTeamAllowed) => response.warn(ONLY_ONE_TEAM_ALLOWED),
+                }
+            }
         }
     }
 }

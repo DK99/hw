@@ -1,9 +1,9 @@
-use mysql;
+use mysql::{self, from_row};
 use mysql::{error::DriverError, error::Error, from_row_opt, params};
 use openssl::sha::sha1;
 use md5;
 
-use crate::handlers::{AccountInfo, Sha1Digest};
+use crate::{core::{room::HwRoom, types::TeamInfo}, handlers::{AccountInfo, Sha1Digest}};
 
 const CHECK_ACCOUNT_EXISTS_QUERY: &str =
     r"SELECT 1 FROM users WHERE users.name = :username LIMIT 1";
@@ -19,6 +19,7 @@ const STORE_STATS_QUERY: &str = r"INSERT INTO gameserver_stats
       (:players, :rooms, UNIX_TIMESTAMP())";
 
 const GET_REPLAY_NAME_QUERY: &str = r"SELECT filename FROM achievements WHERE id = :id";
+const GET_MATCH: &str = r"SELECT `nick` FROM matches WHERE `match` = :match";
 
 pub struct ServerStatistics {
     rooms: u32,
@@ -44,6 +45,15 @@ impl Database {
 
     pub fn is_registered(&mut self, nick: &str) -> Result<bool, Error> {
         if let Some(pool) = &self.pool {
+            let nick_string = nick.to_string();
+            let nick_trimmed = nick_string.split("_").collect::<Vec<&str>>()[0];
+
+            let mut nick = nick;
+
+            if nick_trimmed == "STREAMBOT" {
+                nick = "STREAMBOT";
+            }
+
             let is_registered = pool
                 .first_exec(CHECK_ACCOUNT_EXISTS_QUERY, params! { "username" => nick })?
                 .is_some();
@@ -66,11 +76,19 @@ impl Database {
                 return Ok(None);
             }
 
+            let nick_string = nick.to_string();
+            let nick_trimmed = nick_string.split("_").collect::<Vec<&str>>()[0];
+
+            let mut nick = nick;
+
+            if nick_trimmed == "STREAMBOT" {
+                nick = "STREAMBOT";
+            }
+
             if let Some(row) = pool.first_exec(GET_ACCOUNT_QUERY, params! { "username" => nick })? {
                 let (mut password, is_admin, is_contributor) =
                     from_row_opt::<(String, i32, i32)>(row)?;
 
-                password = format!("{:x}", md5::compute(password));
                 let client_hash = get_hash(protocol, &password, &client_salt, &server_salt);
                 let server_hash = get_hash(protocol, &password, &server_salt, &client_salt);
                 password.replace_range(.., "🦔🦔🦔🦔🦔🦔🦔🦔");
@@ -142,12 +160,39 @@ impl Database {
             Err(DriverError::SetupError.into())
         }
     }
+
+    pub fn get_match (
+        &mut self,
+        team_info: Box<TeamInfo>,
+        room_name: &str,
+        owner: &str,
+        is_admin: &bool
+    ) -> Result<bool, Error> {
+        if let Some(pool) = &self.pool {
+            let mut team_names: Vec<String> = Vec::new();
+
+            for row in pool.prep_exec(GET_MATCH, params! { "match" => room_name })? {
+                let team_name = from_row_opt::<String>(row?)?;
+                team_names.push(team_name);
+            }
+
+            let mut nick_trimmed = owner.to_string();
+            nick_trimmed.pop();
+            nick_trimmed.pop(); 
+
+            Ok(team_names.contains(&nick_trimmed.clone()) || *is_admin)
+        } else {
+            Err(DriverError::SetupError.into())
+        }
+    }
 }
 
-fn get_hash(protocol_number: u16, web_password: &str, salt1: &str, salt2: &str) -> Sha1Digest {
+pub fn get_hash(protocol_number: u16, web_password: &str, salt1: &str, salt2: &str) -> Sha1Digest {
+    let password = format!("{:x}", md5::compute(web_password));
+
     let s = format!(
         "{}{}{}{}{}",
-        salt1, salt2, web_password, protocol_number, "!hedgewars"
+        salt1, salt2, password, protocol_number, "!hedgewars"
     );
     Sha1Digest::new(sha1(s.as_bytes()))
 }

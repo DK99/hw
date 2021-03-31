@@ -1,4 +1,4 @@
-#![allow(unused_imports)]
+#![allow(unused_imports,dead_code,unused_variables,unused_mut,unused_must_use)]
 #![deny(bare_trait_objects)]
 
 use getopts::Options;
@@ -67,7 +67,16 @@ fn main() {
             .build()
             .unwrap()
             .block_on(grpc::listen_users())
-            .expect("GRPC failed :(");
+            .expect("User GRPC failed :(");
+    });
+    
+    std::thread::spawn(move || {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(grpc::listen_tasks(port))
+            .expect("Task GRPC failed :(");
     });
 
     loop {
