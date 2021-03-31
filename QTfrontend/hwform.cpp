@@ -1940,6 +1940,7 @@ void HWForm::GameStateChanged(GameState gameState)
         {
             if (!game || !game->netSuspend)
                 hwnet->gameFinished(true);
+            qDebug() << "GAMESTATS: " << ui.pageGameStats->labelGameRank->text();
             // After a game, the local player might have pseudo-teams left
             // when rejoining a previously left game. This makes sure the
             // teams list is in a consistent state.
@@ -1977,6 +1978,7 @@ void HWForm::DemoPresenceChanged(bool hasDemo)
 {
     demoIsPresent = hasDemo;
 }
+
 
 void HWForm::CreateGame(GameCFGWidget *gamecfg, TeamSelWidget *pTeamSelWidget, QString ammo)
 {
