@@ -7,6 +7,8 @@ services:
       - "46631:46631"
     networks:
       - ctf_web
+    environment:
+      - STREAM_BOT_PASSWORD=${STREAM_BOT_PASSWORD}
   hedgewars-db:
     ports:
       - "3306:3306"
@@ -17,7 +19,6 @@ services:
       - MYSQL_DATABASE=hedgewars
       - MYSQL_USER=hedgewars
       - MYSQL_PASSWORD=2yB9OnKbYpYxBrQeguJOV4PJIrRafV
-      - STREAM_BOT_PASSWORD=${STREAM_BOT_PASSWORD}
     volumes: 
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:

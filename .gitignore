@@ -85,3 +85,4 @@ gameServer2/rls
 gameServer2/target
 build/*
 dist/*
+.env
