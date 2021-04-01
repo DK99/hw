@@ -520,7 +520,15 @@ pub fn handle_io_result(
                                 .in_room(room.id),
                         );
     
-                        let room_master = room.master_id.map(|id| room_control.server().client(id));
+                        let room_master_opt = room.master_id.map(|id| {
+                            if room_control.server().has_client(id) {
+                                Some(room_control.server().client(id))
+                            } else {
+                                None
+                            }
+                        });
+                        let room_master = room_master_opt.flatten();
+
                         common::get_room_update(None, room, room_master, response); 
                     }
                     Err(AddTeamError::TooManyTeams) => response.warn(TOO_MANY_TEAMS),

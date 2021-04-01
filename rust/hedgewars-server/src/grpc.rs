@@ -151,7 +151,7 @@ pub(crate) async fn listen_users() -> Result<(), Box<dyn std::error::Error>> {
                 let mut name_prefix = String::from(&profile.name);
                 name_prefix = legalize_name(&name_prefix);
 
-                info!("Inserting user: {}", name_prefix);
+                println!("Inserting user: {}", name_prefix);
 
                 for i in 0..4 {
                     let password: String = thread_rng()
@@ -298,6 +298,8 @@ async fn send_to_hw_server(
         },
     );
 
+    let mut match_can_start = false;
+
     let schedule_time = UNIX_EPOCH + Duration::from_secs(task.scheduled);
     let delay = schedule_time
         .duration_since(SystemTime::now())
@@ -355,11 +357,19 @@ async fn send_to_hw_server(
         tokio::select! {
             _ = &mut sleep_scheduled_time, if !sleep_scheduled_time.is_elapsed() => {
                 if match_started.load(Ordering::Relaxed) { continue; }
-                send_msg!(HwProtocolMessage::Chat(format!("Waiting until either all players are ready or 5 more minutes...")));
+                match_can_start = true;
+                if all_ready(teams.clone(), users_map.clone()) {
+                    match_started.store(true, Ordering::Relaxed);
+                    send_msg!(HwProtocolMessage::StartGame);
+                    println!("Starting game in room: {}", task.name.clone());
+                } else {
+                    send_msg!(HwProtocolMessage::Chat(format!("Waiting until either all players are ready or 5 more minutes...")));
+                }
             }
             _ = &mut sleep_force_start, if !sleep_force_start.is_elapsed() => {
                 if match_started.load(Ordering::Relaxed) { continue; }
                 send_msg!(HwProtocolMessage::StartGame);
+                println!("Starting game in room: {}", task.name.clone());
                 match_started.store(true, Ordering::Relaxed)
             }
             line = lines.next_line() => {
@@ -518,9 +528,10 @@ async fn send_to_hw_server(
                         if flags.contains("r") {
                             users_map.insert(nick.to_string(), flags.starts_with("+"));
 
-                            if all_ready(teams.clone(), users_map.clone()) && task.teams.len() > 0 {
+                            if all_ready(teams.clone(), users_map.clone()) && task.teams.len() > 0 && match_can_start {
                                 match_started.store(true, Ordering::Relaxed);
                                 send_msg!(HwProtocolMessage::StartGame);
+                                println!("Starting game in room: {}", task.name.clone());
                             }
                         }
                     }
@@ -593,9 +604,10 @@ async fn send_to_hw_server(
 
 
 
-                        if all_ready(teams.clone(), users_map.clone()) {
+                        if all_ready(teams.clone(), users_map.clone()) && match_can_start {
                             match_started.store(true, Ordering::Relaxed);
                             send_msg!(HwProtocolMessage::StartGame);
+                            println!("Starting game in room: {}", task.name.clone());
                         }
                     }
                     ["REMOVE_TEAM", team_name] => {

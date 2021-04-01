@@ -14,6 +14,6 @@ RUN chmod +x /src/wait-for-it.sh
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-RUN cargo build --release --features "official-server"
+RUN RUST_BACKTRACE=1 cargo build --release --features "official-server"
 
-CMD /src/wait-for-it.sh hedgewars-db:3306 && RUST_LOG=debug ./target/release/hedgewars-server
+CMD /src/wait-for-it.sh hedgewars-db:3306 && ./target/release/hedgewars-server
