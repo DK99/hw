@@ -16,6 +16,7 @@ use std::net::SocketAddr;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::io::AsyncBufReadExt;
 use tokio::io::AsyncWrite;
@@ -181,11 +182,14 @@ pub(crate) async fn listen_tasks(port: u16) -> Result<(), Box<dyn std::error::Er
         "mysql://hedgewars:2yB9OnKbYpYxBrQeguJOV4PJIrRafV@hedgewars-db:3306/hedgewars",
     )?;
 
-    let password: String = thread_rng()
+    let password: String = match env::var("STREAM_BOT_PASSWORD") {
+        Ok(val) => val,
+        Err(_e) => thread_rng()
         .sample_iter(&Alphanumeric)
         .take(16)
         .map(char::from)
-        .collect();
+        .collect()
+    };
 
     let _ = pool.first_exec(
         REPLACE_USER,

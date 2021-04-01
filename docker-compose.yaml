@@ -17,6 +17,7 @@ services:
       - MYSQL_DATABASE=hedgewars
       - MYSQL_USER=hedgewars
       - MYSQL_PASSWORD=2yB9OnKbYpYxBrQeguJOV4PJIrRafV
+      - STREAM_BOT_PASSWORD=${STREAM_BOT_PASSWORD}
     volumes: 
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
