@@ -12,11 +12,11 @@ use rand::{distributions::Alphanumeric, prelude::SliceRandom};
 use rand::{thread_rng, Rng, RngCore};
 use regex::Regex;
 use std::collections::HashMap;
+use std::env;
 use std::net::SocketAddr;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::io::AsyncBufReadExt;
 use tokio::io::AsyncWrite;
@@ -185,10 +185,10 @@ pub(crate) async fn listen_tasks(port: u16) -> Result<(), Box<dyn std::error::Er
     let password: String = match env::var("STREAM_BOT_PASSWORD") {
         Ok(val) => val,
         Err(_e) => thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(16)
-        .map(char::from)
-        .collect()
+            .sample_iter(&Alphanumeric)
+            .take(16)
+            .map(char::from)
+            .collect(),
     };
 
     let _ = pool.first_exec(
@@ -486,7 +486,14 @@ async fn send_to_hw_server(
                             send_msg!(HwProtocolMessage::Cfg(GameCfg::Theme(
                                 THEME_MAP[&map].to_string()
                             )));
-                            send_msg!(HwProtocolMessage::Cfg(GameCfg::MapType(map)));
+
+                            if task.category == "Knockout" {
+                                send_msg!(HwProtocolMessage::Cfg(GameCfg::MapType("+forts+".into())));
+                                send_msg!(HwProtocolMessage::Cfg(GameCfg::MapGenerator(4)));
+                            } else {
+                                send_msg!(HwProtocolMessage::Cfg(GameCfg::MapType(map)));
+                                send_msg!(HwProtocolMessage::Cfg(GameCfg::MapGenerator(5)));
+                            }
 
                             let seed: String = thread_rng()
                                 .sample_iter(&Alphanumeric)
